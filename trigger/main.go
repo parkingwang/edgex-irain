@@ -48,10 +48,6 @@ func trigger(ctx edgex.Context) error {
 		}
 	}()
 
-	ticker := time.NewTicker(monitorPeriod)
-	defer ticker.Stop()
-
-	// 启用Trigger服务
 	trigger.Startup()
 	defer trigger.Shutdown()
 
@@ -67,7 +63,7 @@ func trigger(ctx edgex.Context) error {
 		event := Event{}
 		for retry := 0; retry < 5; retry++ {
 			if n, err := client.Receive(buff); nil != err {
-				ctx.Log().Error("发送监控扫描指令出错", err)
+				ctx.Log().Error("接收监控扫描响应出错", err)
 				<-time.After(time.Millisecond * 100)
 			} else {
 				if event, err = parseEvent(buff[:n]); nil != err {
@@ -78,14 +74,16 @@ func trigger(ctx edgex.Context) error {
 		}
 		// 发送事件
 		deviceName := fmt.Sprintf(deviceAddr, event.BoardId, event.Doors, event.Direct)
-		if err := trigger.SendEventMessage(edgex.NewMessage([]byte(deviceName), event.Bytes()));
-			nil != err {
+		msg := edgex.NewMessage([]byte(deviceName), event.Bytes())
+		if err := trigger.SendEventMessage(msg); nil != err {
 			ctx.Log().Error("触发事件出错: ", err)
 		} else {
 			ctx.Log().Debug("触发刷卡事件: ", err)
 		}
 	}
 
+	ticker := time.NewTicker(monitorPeriod)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.TermChan():
