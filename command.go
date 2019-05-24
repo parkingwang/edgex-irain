@@ -2,7 +2,7 @@ package irain
 
 import (
 	"encoding/binary"
-	"github.com/nextabc-lab/edgex-go"
+	"github.com/yoojia/go-bytes"
 )
 
 //
@@ -30,14 +30,14 @@ type Command struct {
 
 func (dk *Command) Bytes() []byte {
 	// 使用小字节序
-	br := edgex.NewByteWriter(binary.LittleEndian)
-	br.PutByte(dk.magicStart)
-	br.PutByte(dk.addr)
-	br.PutByte(dk.length)
-	br.PutByte(dk.funId)
-	br.PutBytes(dk.data[:])
-	br.PutByte(dk.sum)
-	br.PutByte(dk.magicEnd)
+	br := bytes.NewWriter(binary.LittleEndian)
+	br.NextByte(dk.magicStart)
+	br.NextByte(dk.addr)
+	br.NextByte(dk.length)
+	br.NextByte(dk.funId)
+	br.NextBytes(dk.data[:])
+	br.NextByte(dk.sum)
+	br.NextByte(dk.magicEnd)
 	return br.Bytes()
 }
 
