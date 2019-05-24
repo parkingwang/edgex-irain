@@ -1,0 +1,18 @@
+Name = "iRainTrigger"
+Topic = "irain/events"
+
+# 主板配置参数
+[BoardOptions]
+  controllerId = 1
+  monitorPeriod = "1s"
+
+# Socket配置参数
+[SocketClientOptions]
+  targetAddress = "tcp://board.ir0.edgex.io:50000"
+  bufferSize = 1024
+  readTimeout = "1s"
+  writeTimeout = "1s"
+  autoReconnect = true
+  reconnectInterval = "3s"
+  keepAlive = true
+  keepAliveInterval = "3s"
