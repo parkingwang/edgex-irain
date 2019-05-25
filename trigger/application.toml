@@ -8,8 +8,8 @@ Topic = "irain/events"
 
 # Socket配置参数
 [SocketClientOptions]
-  targetAddress = "tcp://board.ir0.edgex.io:50000"
-  bufferSize = 1024
+  targetAddress = "tcp://ep-ir0.edgex.io:50000"
+  bufferSize = 512
   readTimeout = "1s"
   writeTimeout = "1s"
   autoReconnect = true
