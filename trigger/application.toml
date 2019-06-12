@@ -4,7 +4,7 @@ Topic = "irain/events"
 # 主板配置参数
 [BoardOptions]
   controllerId = 1
-  monitorPeriod = "1s"
+  scanPeriod = "1s"
 
 # Socket配置参数
 [SocketClientOptions]

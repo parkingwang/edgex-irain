@@ -9,20 +9,24 @@ import (
 // Author: 陈哈哈 chenyongjia@parkingwang.com, yoojiachen@gmail.com
 //
 const (
-	MagicStart byte = 0x00F3
+	MagicStart byte = 0x00D2
 	MagicEnd   byte = 0x00D3
 )
 
 const (
-	FunRemoteOpen  byte = 0x005A // 手动打开开关
-	FunMonitorScan byte = '['    // 监控扫描
+	CmdRemoteOpen byte = 0x005A // 手动打开开关
+	CmdEventScan  byte = 0x005B // 监控扫描
+	CmdCardAdd    byte = 0x0052 // 添加卡
+	CmdCardDelete byte = 0x0057 // 删除卡
+	CmdCardClear  byte = 0x0050 // 清空卡
+
 )
 
 type Command struct {
 	magicStart byte // 起始位
 	addr       byte // 控制器地址
 	length     byte // 数据长度
-	funId      byte // 指令
+	cmdId      byte // 指令
 	data       []byte
 	sum        byte
 	magicEnd   byte
@@ -34,27 +38,27 @@ func (dk *Command) Bytes() []byte {
 	br.NextByte(dk.magicStart)
 	br.NextByte(dk.addr)
 	br.NextByte(dk.length)
-	br.NextByte(dk.funId)
+	br.NextByte(dk.cmdId)
 	br.NextBytes(dk.data[:])
 	br.NextByte(dk.sum)
 	br.NextByte(dk.magicEnd)
 	return br.Bytes()
 }
 
-func NewCommand(addr, funId byte, data []byte) *Command {
+func NewCommand(devAddr, cmdId byte, data []byte) *Command {
 	dataLen := byte(len(data))
 	// 计算XOR校验和
-	sum := addr
+	sum := devAddr
 	sum ^= dataLen
-	sum ^= funId
+	sum ^= cmdId
 	for _, b := range data {
 		sum ^= b
 	}
 	return &Command{
 		magicStart: MagicStart,
-		addr:       addr,
+		addr:       devAddr,
 		length:     dataLen,
-		funId:      funId,
+		cmdId:      cmdId,
 		data:       data,
 		sum:        sum,
 		magicEnd:   MagicEnd,
