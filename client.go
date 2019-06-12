@@ -1,6 +1,7 @@
 package irain
 
 import (
+	"fmt"
 	"github.com/nextabc-lab/edgex-go"
 	"github.com/pkg/errors"
 	"net"
@@ -69,26 +70,34 @@ func (s *SockClient) BufferSize() uint {
 func (s *SockClient) Open() (err error) {
 	switch s.opts.Network {
 	case "tcp", "TCP":
-		if s.opts.AutoReconnect {
-			log := edgex.ZapSugarLogger
-			go func() {
-				ticker := time.NewTicker(s.opts.ReconnectInterval)
-				defer ticker.Stop()
-				state := atomic.LoadUint32(&s.state)
-				for disconnected != state {
-					if connected != state {
-						if err := s.connectTcp(); nil != err {
-							log.Error("Connect tcp client failed: ", err)
-						}
-					}
-					<-ticker.C
-				}
-			}()
-			return nil
-		} else {
-			err = s.connectTcp()
+		log := edgex.ZapSugarLogger
+		err = s.connectTcp()
+		if nil == err {
+			log.Debug("TCP connected: " + s.opts.Addr)
 		}
-		return
+		if !s.opts.AutoReconnect {
+			return err
+		}
+		// 定时检查自动重连
+		go func() {
+			ticker := time.NewTicker(s.opts.ReconnectInterval)
+			defer ticker.Stop()
+			// disconnected为手动关闭状态，非手动关闭，循环检查
+			for range ticker.C {
+				state := atomic.LoadUint32(&s.state)
+				if disconnected == state {
+					return
+				}
+				if connected != state {
+					if err := s.connectTcp(); nil != err {
+						log.Error("Connect tcp client failed: ", err)
+					} else {
+						log.Debug("TCP connected[RECONNECT]: " + s.opts.Addr)
+					}
+				}
+			}
+		}()
+		return nil
 
 	case "udp", "UDP":
 		if addr, err := net.ResolveUDPAddr("udp", s.opts.Addr); nil != err {
@@ -156,15 +165,19 @@ func (s *SockClient) Execute(in []byte) (out []byte, err error) {
 }
 
 func (s *SockClient) checkSocketState(err error) error {
-	if !IsNetTempErr(err) {
+	if nil != err && !IsNetTempErr(err) {
+		// 发生非临时性错误，设置connecting状态，让自动检查循环重新连接
 		atomic.StoreUint32(&s.state, connecting)
+		return err
+	} else {
+		return nil
 	}
-	return err
 }
 
 func (s *SockClient) connectTcp() (err error) {
 	if s.conn, err = newTcpConn(s.opts.Addr, &s.opts); nil == err {
 		atomic.StoreUint32(&s.state, connected)
+		fmt.Println("TCP connected, set state")
 	}
 	return err
 }
@@ -177,8 +190,12 @@ func newTcpConn(remoteAddr string, opts *SockOptions) (conn *net.TCPConn, err er
 	if conn, err := net.DialTCP("tcp", nil, addr); nil != err {
 		return nil, errors.WithMessage(err, "TCP dial failed")
 	} else {
-		conn.SetKeepAlive(opts.KeepAlive)
-		conn.SetKeepAlivePeriod(opts.KeepAliveInterval)
+		if err := conn.SetKeepAlive(opts.KeepAlive); nil != err {
+			return nil, err
+		}
+		if err := conn.SetKeepAlivePeriod(opts.KeepAliveInterval); nil != err {
+			return nil, err
+		}
 		return conn, nil
 	}
 }

@@ -19,7 +19,11 @@ const (
 	CmdCardAdd    byte = 0x0052 // 添加卡
 	CmdCardDelete byte = 0x0057 // 删除卡
 	CmdCardClear  byte = 0x0050 // 清空卡
+)
 
+const (
+	DirectIn  = 1
+	DirectOut = 2
 )
 
 type Command struct {
@@ -62,5 +66,13 @@ func NewCommand(devAddr, cmdId byte, data []byte) *Command {
 		data:       data,
 		sum:        sum,
 		magicEnd:   MagicEnd,
+	}
+}
+
+func DirectName(dir byte) string {
+	if 1 == dir {
+		return "IN"
+	} else {
+		return "OUT"
 	}
 }
