@@ -1,7 +1,6 @@
 package irain
 
 import (
-	"fmt"
 	"github.com/nextabc-lab/edgex-go"
 	"github.com/pkg/errors"
 	"net"
@@ -177,7 +176,6 @@ func (s *SockClient) checkSocketState(err error) error {
 func (s *SockClient) connectTcp() (err error) {
 	if s.conn, err = newTcpConn(s.opts.Addr, &s.opts); nil == err {
 		atomic.StoreUint32(&s.state, connected)
-		fmt.Println("TCP connected, set state")
 	}
 	return err
 }
