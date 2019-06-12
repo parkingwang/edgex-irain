@@ -23,5 +23,7 @@ func (e Event) Bytes() []byte {
 // 解析刷卡数据
 func parseEvent(data []byte) (Event, error) {
 	// TODO
+	// e2a9bcbfffff0165620112e3
+	// e2a9bcc4ffff0165620112e3
 	return Event{}, nil
 }

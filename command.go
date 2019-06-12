@@ -11,6 +11,8 @@ import (
 const (
 	MagicStart byte = 0x00D2
 	MagicEnd   byte = 0x00D3
+	DataStart  byte = 0x00E2
+	DataEnd    byte = 0x00E3
 )
 
 const (
@@ -66,6 +68,16 @@ func NewCommand(devAddr, cmdId byte, data []byte) *Command {
 		data:       data,
 		sum:        sum,
 		magicEnd:   MagicEnd,
+	}
+}
+
+// 检查数据字节是否为协议数据
+func CheckProtoValid(data []byte) bool {
+	size := len(data)
+	if size < 2 || DataStart != data[0] || DataEnd != data[size-1] {
+		return false
+	} else {
+		return true
 	}
 }
 

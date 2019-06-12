@@ -67,21 +67,26 @@ func trigger(ctx edgex.Context) error {
 			log.Debug("发送事件监控扫描指令: " + hex.EncodeToString(scan))
 		})
 		if _, err := client.Send(scan); nil != err {
-			ctx.Log().Error("发送事件监控扫描指令出错: ", err)
+			ctx.Log().Error("发送事件监控扫描指令出错(检查服务端是否被其它客户端占用): ", err)
 			return
 		}
 		// 等待响应结果
+		n, err := client.Receive(buff)
+		if nil != err {
+			ctx.Log().Error("接收事件监控扫描响应出错: ", err)
+			return
+		}
+		data := buff[:n]
+		if irain.CheckProtoValid(data) {
+			return
+		}
+		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
+			log.Debug("接收事件监控扫描响应数据: " + hex.EncodeToString(data))
+		})
 		event := Event{}
-		for retry := 0; retry < 5; retry++ {
-			if n, err := client.Receive(buff); nil != err {
-				ctx.Log().Error("接收事件监控扫描响应出错: ", err)
-				<-time.After(time.Millisecond * 200)
-			} else {
-				if event, err = parseEvent(buff[:n]); nil != err {
-					ctx.Log().Error("事件监控返回无法解析数据: ", err)
-					return
-				}
-			}
+		if event, err = parseEvent(data); nil != err {
+			ctx.Log().Error("事件监控返回无法解析数据: ", err)
+			return
 		}
 		// 发送事件
 		deviceName := fmt.Sprintf(deviceAddr, event.BoardId, event.Doors, irain.DirectName(event.Direct))
@@ -95,6 +100,7 @@ func trigger(ctx edgex.Context) error {
 
 	ticker := time.NewTicker(scanPeriod)
 	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.TermChan():
