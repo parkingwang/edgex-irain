@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/nextabc-lab/edgex-dongkong"
+	"github.com/bitschen/go-socket"
 	"github.com/nextabc-lab/edgex-go"
+	"github.com/nextabc-lab/edgex-irain"
 	"github.com/yoojia/go-at"
 	"github.com/yoojia/go-value"
 	"go.uber.org/zap"
@@ -28,30 +29,40 @@ func endpoint(ctx edgex.Context) error {
 	remoteAddress := value.Of(sockOpts["remoteAddress"]).String()
 
 	boardOpts := value.Of(config["BoardOptions"]).MustMap()
-	serialNumber := uint32(value.Of(boardOpts["serialNumber"]).MustInt64())
+	controllerId := uint32(value.Of(boardOpts["controllerId"]).MustInt64())
 	doorCount := value.Of(boardOpts["doorCount"]).Int64OrDefault(4)
 
 	// AT指令解析
 	atRegistry := at.NewAtRegister()
-	atCommands(atRegistry, serialNumber)
+	atCommands(atRegistry, byte(controllerId))
 
-	ctx.Log().Debugf("连接目标地址: [udp://%s]", remoteAddress)
+	ctx.Log().Debugf("TCP客户端连接: [%s]", remoteAddress)
 
-	client := irain.NewClientWithOptions(remoteAddress, sockOpts)
-	if err := client.Open(); nil != err {
-		ctx.Log().Error("客户端打开连接失败", err)
+	cli := sock.New(sock.Options{
+		Network:           "tcp",
+		Addr:              remoteAddress,
+		ReadTimeout:       value.Of(sockOpts["readTimeout"]).DurationOfDefault(time.Second),
+		WriteTimeout:      value.Of(sockOpts["writeTimeout"]).DurationOfDefault(time.Second),
+		KeepAlive:         value.Of(sockOpts["keepAlive"]).BoolOrDefault(true),
+		KeepAliveInterval: value.Of(sockOpts["keepAliveInterval"]).DurationOfDefault(time.Second * 10),
+		ReconnectDelay:    value.Of(sockOpts["reconnectDelay"]).DurationOfDefault(time.Second),
+	})
+	if err := cli.Connect(); nil != err {
+		ctx.Log().Error("TCP客户端连接失败", err)
+	} else {
+		ctx.Log().Debug("TCP客户端连接成功")
 	}
 	defer func() {
-		if err := client.Close(); nil != err {
-			ctx.Log().Error("客户端关闭连接失败", err)
+		if err := cli.Disconnect(); nil != err {
+			ctx.Log().Error("TCP客户端关闭连接失败：", err)
 		}
 	}()
 
-	buffer := make([]byte, 64)
+	buffer := make([]byte, 256)
 	endpoint := ctx.NewEndpoint(edgex.EndpointOptions{
 		Name:        deviceName,
 		RpcAddr:     rpcAddress,
-		InspectFunc: inspectFunc(serialNumber, int(doorCount)),
+		InspectFunc: inspectFunc(controllerId, int(doorCount)),
 	})
 
 	// 处理控制指令
@@ -63,16 +74,16 @@ func endpoint(ctx edgex.Context) error {
 			return edgex.NewMessageString(deviceName, "EX=ERR:"+err.Error())
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
-			log.Debug("东控指令码: " + hex.EncodeToString(cmd))
+			log.Debug("艾润指令码: " + hex.EncodeToString(cmd))
 		})
 		// Write
-		if _, err := client.Send(cmd); nil != err {
+		if _, err := cli.Write(cmd); nil != err {
 			return edgex.NewMessageString(deviceName, "EX=ERR:"+err.Error())
 		}
 		// Read
 		var n = int(0)
-		for i := 0; i < 2; i++ {
-			if n, err = client.Receive(buffer); nil != err {
+		for i := 0; i < 5; i++ {
+			if n, err = cli.Read(buffer); nil != err {
 				ctx.Log().Errorf("读取设备响应数据出错[%d]: %s", i, err.Error())
 				<-time.After(time.Millisecond * 500)
 			} else {
@@ -81,19 +92,18 @@ func endpoint(ctx edgex.Context) error {
 		}
 		// parse
 		body := "EX=ERR:NO-REPLY"
+		data := buffer[:n]
 		if n > 0 {
-			if outCmd, err := dongk.ParseCommand(buffer); nil != err {
+			if irain.CheckProtoValid(data) {
 				ctx.Log().Error("解析响应数据出错", err)
 				body = "EX=ERR:PARSE_ERR"
-			} else if outCmd.Success() {
-				body = "EX=OK"
 			} else {
-				body = "EX=ERR:NOT-OK"
+				body = "EX=OK"
 			}
 		}
 		ctx.Log().Debug("接收到控制响应: " + body)
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
-			log.Debug("响应码: " + hex.EncodeToString(buffer))
+			log.Debug("响应码: " + hex.EncodeToString(data))
 		})
 		return edgex.NewMessageString(deviceName, body)
 	})
