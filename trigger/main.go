@@ -8,7 +8,6 @@ import (
 	"github.com/nextabc-lab/edgex-irain"
 	"github.com/yoojia/go-value"
 	"go.uber.org/zap"
-	"runtime"
 	"time"
 )
 
@@ -27,7 +26,7 @@ func main() {
 
 func trigger(ctx edgex.Context) error {
 	config := ctx.LoadConfig()
-	triggerName := value.Of(config["Name"]).String()
+	nodeName := value.Of(config["NodeName"]).String()
 	eventTopic := value.Of(config["Topic"]).String()
 
 	boardOpts := value.Of(config["BoardOptions"]).MustMap()
@@ -38,7 +37,7 @@ func trigger(ctx edgex.Context) error {
 	remoteAddress := value.Of(sockOpts["remoteAddress"]).String()
 
 	trigger := ctx.NewTrigger(edgex.TriggerOptions{
-		Name:        triggerName,
+		NodeName:    nodeName,
 		Topic:       eventTopic,
 		InspectFunc: inspectFunc(controllerId, int(doorCount), eventTopic),
 	})
@@ -97,8 +96,7 @@ func trigger(ctx edgex.Context) error {
 		}
 		// 发送事件
 		deviceName := fmt.Sprintf(formatReaderAddr, event.ControllerId, event.DoorId)
-		msg := edgex.NewMessage([]byte(deviceName), event.Bytes())
-		if err := trigger.SendEventMessage(msg); nil != err {
+		if err := trigger.SendEventMessage(deviceName, event.Bytes()); nil != err {
 			ctx.Log().Error("触发事件出错: ", err)
 		} else {
 			ctx.Log().Debugf("接收到刷卡数据, Device: %s, DoorId: %d, Card[WG26SN]: %s, Card[SN]: %s", deviceName, event.DoorId, event.Card.Wg26SN, event.Card.CardSN)
@@ -116,14 +114,14 @@ func trigger(ctx edgex.Context) error {
 	}
 }
 
-func inspectFunc(devAddr byte, doorCount int, eventTopic string) func() edgex.Inspect {
+func inspectFunc(controllerId byte, doorCount int, eventTopic string) func() edgex.Inspect {
 	deviceOf := func(doorId, direct int) edgex.VirtualDevice {
 		return edgex.VirtualDevice{
-			Name:       fmt.Sprintf(formatReaderAddr, devAddr, doorId),
-			Desc:       fmt.Sprintf("%d号门-读卡器", doorId),
-			Type:       edgex.DeviceTypeTrigger,
-			Virtual:    true,
-			EventTopic: eventTopic,
+			VirtualName: fmt.Sprintf(formatReaderAddr, controllerId, doorId),
+			Desc:        fmt.Sprintf("%d号门-读卡器", doorId),
+			Type:        edgex.DeviceTypeTrigger,
+			Virtual:     true,
+			EventTopic:  eventTopic,
 		}
 	}
 	return func() edgex.Inspect {
@@ -133,8 +131,6 @@ func inspectFunc(devAddr byte, doorCount int, eventTopic string) func() edgex.In
 			devices[d*2+1] = deviceOf(d+1, irain.DirectOut)
 		}
 		return edgex.Inspect{
-			HostOS:         runtime.GOOS,
-			HostArch:       runtime.GOARCH,
 			Vendor:         irain.VendorName,
 			DriverName:     irain.DriverName,
 			VirtualDevices: devices,

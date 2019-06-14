@@ -1,4 +1,4 @@
-Name = "iRainTrigger"
+NodeName = "iRainTrigger"
 Topic = "irain/events"
 
 # 主板配置参数

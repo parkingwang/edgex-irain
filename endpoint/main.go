@@ -9,7 +9,6 @@ import (
 	"github.com/yoojia/go-at"
 	"github.com/yoojia/go-value"
 	"go.uber.org/zap"
-	"runtime"
 	"time"
 )
 
@@ -27,7 +26,7 @@ func main() {
 
 func endpoint(ctx edgex.Context) error {
 	config := ctx.LoadConfig()
-	deviceName := value.Of(config["Name"]).String()
+	nodeName := value.Of(config["NodeName"]).String()
 	rpcAddress := value.Of(config["RpcAddress"]).String()
 
 	sockOpts := value.Of(config["SocketClientOptions"]).MustMap()
@@ -65,7 +64,7 @@ func endpoint(ctx edgex.Context) error {
 
 	buffer := make([]byte, 256)
 	endpoint := ctx.NewEndpoint(edgex.EndpointOptions{
-		Name:        deviceName,
+		NodeName:    nodeName,
 		RpcAddr:     rpcAddress,
 		InspectFunc: inspectFunc(controllerId, int(doorCount)),
 	})
@@ -76,14 +75,14 @@ func endpoint(ctx edgex.Context) error {
 		ctx.Log().Debug("接收到控制指令: " + atCmd)
 		cmd, err := atRegistry.Apply(atCmd)
 		if nil != err {
-			return edgex.NewMessageString(deviceName, "EX=ERR:"+err.Error())
+			return edgex.NewMessageString(nodeName, "EX=ERR:"+err.Error())
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
 			log.Debug("艾润指令码: " + hex.EncodeToString(cmd))
 		})
 		// Write
 		if _, err := cli.Write(cmd); nil != err {
-			return edgex.NewMessageString(deviceName, "EX=ERR:"+err.Error())
+			return edgex.NewMessageString(nodeName, "EX=ERR:"+err.Error())
 		}
 		// Read
 		var n = int(0)
@@ -110,7 +109,7 @@ func endpoint(ctx edgex.Context) error {
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
 			log.Debug("响应码: " + hex.EncodeToString(data))
 		})
-		return edgex.NewMessageString(deviceName, body)
+		return edgex.NewMessageString(nodeName, body)
 	})
 
 	endpoint.Startup()
@@ -123,11 +122,11 @@ func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
 	deviceOf := func(doorId int) edgex.VirtualDevice {
 		// Address 可以自动从环境变量中获取
 		return edgex.VirtualDevice{
-			Name:    fmt.Sprintf(formatSwitchAddr, controllerId, doorId),
-			Desc:    fmt.Sprintf("%d号门-电磁开关", doorId),
-			Type:    edgex.DeviceTypeEndpoint,
-			Virtual: true,
-			Command: fmt.Sprintf("AT+OPEN=%d", doorId),
+			VirtualName: fmt.Sprintf(formatSwitchAddr, controllerId, doorId),
+			Desc:        fmt.Sprintf("%d号门-电磁开关", doorId),
+			Type:        edgex.DeviceTypeEndpoint,
+			Virtual:     true,
+			Command:     fmt.Sprintf("AT+OPEN=%d", doorId),
 		}
 	}
 	return func() edgex.Inspect {
@@ -136,8 +135,6 @@ func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
 			devices[d] = deviceOf(d + 1)
 		}
 		return edgex.Inspect{
-			HostOS:         runtime.GOOS,
-			HostArch:       runtime.GOARCH,
 			Vendor:         irain.VendorName,
 			DriverName:     irain.DriverName,
 			VirtualDevices: devices,
