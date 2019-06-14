@@ -17,8 +17,8 @@ import (
 // 使用SocketTCP客户端连接的Trigger。注意与Endpoint都是使用Client模式。
 
 const (
-	// 设备地址格式：　TRIGGER-BID-DOOR_ID-DIRECT
-	deviceAddr = "TRIGGER-%d-%d-%s"
+	// 设备地址格式：　TRIGGER-CONTROLLER_ID-DOOR_ID-DIRECT
+	formatReaderAddr = "READER-%d-%d"
 )
 
 func main() {
@@ -96,7 +96,7 @@ func trigger(ctx edgex.Context) error {
 			return
 		}
 		// 发送事件
-		deviceName := fmt.Sprintf(deviceAddr, event.ControllerId, event.DoorId, irain.DirectName(event.Direct))
+		deviceName := fmt.Sprintf(formatReaderAddr, event.ControllerId, event.DoorId)
 		msg := edgex.NewMessage([]byte(deviceName), event.Bytes())
 		if err := trigger.SendEventMessage(msg); nil != err {
 			ctx.Log().Error("触发事件出错: ", err)
@@ -117,28 +117,27 @@ func trigger(ctx edgex.Context) error {
 }
 
 func inspectFunc(devAddr byte, doorCount int, eventTopic string) func() edgex.Inspect {
-	deviceOf := func(doorId, direct int) edgex.Device {
-		directName := irain.DirectName(byte(direct))
-		return edgex.Device{
-			Name:       fmt.Sprintf(deviceAddr, devAddr, doorId, directName),
-			Desc:       fmt.Sprintf("%d号门-%s-读卡器", doorId, directName),
+	deviceOf := func(doorId, direct int) edgex.VirtualDevice {
+		return edgex.VirtualDevice{
+			Name:       fmt.Sprintf(formatReaderAddr, devAddr, doorId),
+			Desc:       fmt.Sprintf("%d号门-读卡器", doorId),
 			Type:       edgex.DeviceTypeTrigger,
 			Virtual:    true,
 			EventTopic: eventTopic,
 		}
 	}
 	return func() edgex.Inspect {
-		devices := make([]edgex.Device, doorCount*2)
+		devices := make([]edgex.VirtualDevice, doorCount*2)
 		for d := 0; d < doorCount; d++ {
 			devices[d*2] = deviceOf(d+1, irain.DirectIn)
 			devices[d*2+1] = deviceOf(d+1, irain.DirectOut)
 		}
 		return edgex.Inspect{
-			HostOS:     runtime.GOOS,
-			HostArch:   runtime.GOARCH,
-			Vendor:     irain.VendorName,
-			DriverName: irain.DriverName,
-			Devices:    devices,
+			HostOS:         runtime.GOOS,
+			HostArch:       runtime.GOARCH,
+			Vendor:         irain.VendorName,
+			DriverName:     irain.DriverName,
+			VirtualDevices: devices,
 		}
 	}
 }

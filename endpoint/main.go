@@ -114,28 +114,28 @@ func endpoint(ctx edgex.Context) error {
 	return ctx.TermAwait()
 }
 
-func inspectFunc(sn uint32, doorCount int) func() edgex.Inspect {
-	deviceOf := func(doorId int) edgex.Device {
+func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
+	deviceOf := func(doorId int) edgex.VirtualDevice {
 		// Address 可以自动从环境变量中获取
-		return edgex.Device{
-			Name:    fmt.Sprintf("ENDPOINT-%d-%d", sn, doorId),
-			Desc:    fmt.Sprintf("%d号门-控制开关", doorId),
+		return edgex.VirtualDevice{
+			Name:    fmt.Sprintf("SWITCH-%d-%d", controllerId, doorId),
+			Desc:    fmt.Sprintf("%d号门-电磁开关", doorId),
 			Type:    edgex.DeviceTypeEndpoint,
 			Virtual: true,
 			Command: fmt.Sprintf("AT+OPEN=%d", doorId),
 		}
 	}
 	return func() edgex.Inspect {
-		devices := make([]edgex.Device, doorCount)
+		devices := make([]edgex.VirtualDevice, doorCount)
 		for d := 0; d < doorCount; d++ {
 			devices[d] = deviceOf(d + 1)
 		}
 		return edgex.Inspect{
-			HostOS:     runtime.GOOS,
-			HostArch:   runtime.GOARCH,
-			Vendor:     irain.VendorName,
-			DriverName: irain.DriverName,
-			Devices:    devices,
+			HostOS:         runtime.GOOS,
+			HostArch:       runtime.GOARCH,
+			Vendor:         irain.VendorName,
+			DriverName:     irain.DriverName,
+			VirtualDevices: devices,
 		}
 	}
 }
