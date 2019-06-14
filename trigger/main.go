@@ -17,7 +17,7 @@ import (
 // 使用SocketTCP客户端连接的Trigger。注意与Endpoint都是使用Client模式。
 
 const (
-	// 设备地址格式：　TRIGGER-CONTROLLER_ID-DOOR_ID-DIRECT
+	// 设备地址格式：　READER - 控制器地址 - 门号
 	formatReaderAddr = "READER-%d-%d"
 )
 

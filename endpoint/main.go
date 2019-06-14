@@ -16,6 +16,11 @@ import (
 //
 // Author: 陈哈哈 bitschen@163.com
 
+const (
+	// 设备地址格式：　SWITCH - 控制器地址 - 门号
+	formatSwitchAddr = "SWITCH-%d-%d"
+)
+
 func main() {
 	edgex.Run(endpoint)
 }
@@ -118,7 +123,7 @@ func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
 	deviceOf := func(doorId int) edgex.VirtualDevice {
 		// Address 可以自动从环境变量中获取
 		return edgex.VirtualDevice{
-			Name:    fmt.Sprintf("SWITCH-%d-%d", controllerId, doorId),
+			Name:    fmt.Sprintf(formatSwitchAddr, controllerId, doorId),
 			Desc:    fmt.Sprintf("%d号门-电磁开关", doorId),
 			Type:    edgex.DeviceTypeEndpoint,
 			Virtual: true,
