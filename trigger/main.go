@@ -14,7 +14,7 @@ import (
 
 //
 // Author: 陈哈哈 yoojiachen@gmail.com
-// 使用Socket客户端连接的Trigger。注意与Endpoint都是使用Client模式。
+// 使用SocketTCP客户端连接的Trigger。注意与Endpoint都是使用Client模式。
 
 const (
 	// 设备地址格式：　TRIGGER-BID-DOOR_ID-DIRECT
@@ -55,13 +55,13 @@ func trigger(ctx edgex.Context) error {
 		ReconnectDelay:    value.Of(sockOpts["reconnectDelay"]).DurationOfDefault(time.Second),
 	})
 	if err := cli.Connect(); nil != err {
-		ctx.Log().Error("客户端连接失败", err)
+		ctx.Log().Error("TCP客户端连接失败", err)
 	} else {
-		ctx.Log().Debug("客户端连接成功")
+		ctx.Log().Debug("TCP客户端连接成功")
 	}
 	defer func() {
 		if err := cli.Disconnect(); nil != err {
-			ctx.Log().Error("客户端关闭连接失败：", err)
+			ctx.Log().Error("TCP客户端关闭连接失败：", err)
 		}
 	}()
 
