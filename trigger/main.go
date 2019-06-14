@@ -90,8 +90,8 @@ func trigger(ctx edgex.Context) error {
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
 			log.Debug("接收监控事件数据: " + hex.EncodeToString(data))
 		})
-		event := &Event{}
-		if event, err = parseEvent(controllerId, data); nil != err {
+		event, err := parseEvent(controllerId, data)
+		if nil != err {
 			ctx.Log().Error("事件监控返回无法解析数据: ", err)
 			return
 		}

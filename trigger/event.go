@@ -21,16 +21,15 @@ type Event struct {
 }
 
 func (e *Event) Bytes() []byte {
-	json := jsonx.NewFatJSON()
-	json.Field("sn", e.ControllerId)
-	json.Field("index", 0)
-	json.Field("type", 0)
-	json.Field("typeName", "CARD")
-	json.Field("state", e.State)
-	json.Field("card", e.Card.CardSN)
-	json.Field("doorId", e.DoorId)
-	json.Field("direct", irain.DirectName(e.Direct))
-	return []byte{}
+	return jsonx.NewFatJSON().
+		Field("sn", e.ControllerId).
+		Field("index", 0).
+		Field("type", 0).
+		Field("typeName", "CARD").
+		Field("state", e.State).
+		Field("card", e.Card.CardSN).
+		Field("doorId", e.DoorId).
+		Field("direct", irain.DirectName(e.Direct)).Bytes()
 }
 
 // 解析刷卡数据
