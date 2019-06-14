@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/nextabc-lab/edgex-dongkong"
+	"github.com/bitschen/go-socket"
 	"github.com/nextabc-lab/edgex-go"
+	"github.com/nextabc-lab/edgex-irain"
 	"github.com/yoojia/go-value"
 	"go.uber.org/zap"
 	"runtime"
@@ -13,7 +14,7 @@ import (
 
 //
 // Author: 陈哈哈 yoojiachen@gmail.com
-//
+// 使用Socket客户端连接的Trigger。注意与Endpoint都是使用Client模式。
 
 const (
 	// 设备地址格式：　TRIGGER-BID-DOOR_ID-DIRECT
@@ -31,7 +32,6 @@ func trigger(ctx edgex.Context) error {
 
 	boardOpts := value.Of(config["BoardOptions"]).MustMap()
 	controllerId := byte(value.Of(boardOpts["controllerId"]).MustInt64())
-	scanPeriod := value.Of(boardOpts["scanPeriod"]).DurationOfDefault(time.Millisecond * 500)
 	doorCount := value.Of(boardOpts["doorCount"]).Int64OrDefault(4)
 
 	sockOpts := value.Of(config["SocketClientOptions"]).MustMap()
@@ -43,15 +43,24 @@ func trigger(ctx edgex.Context) error {
 		InspectFunc: inspectFunc(controllerId, int(doorCount), eventTopic),
 	})
 
-	ctx.Log().Debugf("连接目标地址: [%s]", remoteAddress)
-	client := irain.NewClientWithOptions(remoteAddress, sockOpts)
-	if err := client.Open(); nil != err {
-		ctx.Log().Error("客户端打开连接失败", err)
+	ctx.Log().Debugf("TCP连接服务端地址: [tcp://%s]", remoteAddress)
+
+	cli := sock.New(sock.Options{
+		Network:           "tcp",
+		Addr:              remoteAddress,
+		ReadTimeout:       value.Of(sockOpts["readTimeout"]).DurationOfDefault(time.Second),
+		WriteTimeout:      value.Of(sockOpts["writeTimeout"]).DurationOfDefault(time.Second),
+		KeepAlive:         value.Of(sockOpts["keepAlive"]).BoolOrDefault(true),
+		KeepAliveInterval: value.Of(sockOpts["keepAliveInterval"]).DurationOfDefault(time.Second * 10),
+		ReconnectDelay:    value.Of(sockOpts["reconnectDelay"]).DurationOfDefault(time.Second),
+	})
+	if err := cli.Connect(); nil != err {
+		ctx.Log().Error("客户端连接失败", err)
 	} else {
 		ctx.Log().Debug("客户端连接成功")
 	}
 	defer func() {
-		if err := client.Close(); nil != err {
+		if err := cli.Disconnect(); nil != err {
 			ctx.Log().Error("客户端关闭连接失败：", err)
 		}
 	}()
@@ -59,55 +68,50 @@ func trigger(ctx edgex.Context) error {
 	trigger.Startup()
 	defer trigger.Shutdown()
 
-	scan := newCommandEventScan(controllerId).Bytes()
-	buff := make([]byte, client.BufferSize())
+	buffer := make([]byte, 256)
 
-	monitor := func() {
-		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
-			log.Debug("发送事件监控扫描指令: " + hex.EncodeToString(scan))
-		})
-		if _, err := client.Send(scan); nil != err {
-			ctx.Log().Error("发送事件监控扫描指令出错(检查服务端是否被其它客户端占用): ", err)
-			return
-		}
-		// 等待响应结果
-		n, err := client.Receive(buff)
+	// 等待刷卡数据
+	process := func() {
+		n, err := cli.Read(buffer)
 		if nil != err {
-			ctx.Log().Error("接收事件监控扫描响应出错: ", err)
-			return
+			if sock.IsNetTempErr(err) {
+				return
+			}
+			ctx.Log().Error("接收监控事件出错: ", err)
+			if err := cli.Reconnect(); nil != err {
+				ctx.Log().Error("尝试重新连接: ", err)
+			}
 		}
-		data := buff[:n]
-		if irain.CheckProtoValid(data) {
+		data := buffer[:n]
+		// 检查艾润的数据格式
+		if !irain.CheckProtoValid(data) {
 			return
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
-			log.Debug("接收事件监控扫描响应数据: " + hex.EncodeToString(data))
+			log.Debug("接收监控事件数据: " + hex.EncodeToString(data))
 		})
-		event := Event{}
-		if event, err = parseEvent(data); nil != err {
+		event := &Event{}
+		if event, err = parseEvent(controllerId, data); nil != err {
 			ctx.Log().Error("事件监控返回无法解析数据: ", err)
 			return
 		}
 		// 发送事件
-		deviceName := fmt.Sprintf(deviceAddr, event.BoardId, event.Doors, irain.DirectName(event.Direct))
+		deviceName := fmt.Sprintf(deviceAddr, event.ControllerId, event.DoorId, irain.DirectName(event.Direct))
 		msg := edgex.NewMessage([]byte(deviceName), event.Bytes())
 		if err := trigger.SendEventMessage(msg); nil != err {
 			ctx.Log().Error("触发事件出错: ", err)
 		} else {
-			ctx.Log().Debug("触发刷卡事件: ", err)
+			ctx.Log().Debugf("接收到刷卡数据, Device: %s, DoorId: %d, Card[WG26SN]: %s, Card[SN]: %s", deviceName, event.DoorId, event.Card.Wg26SN, event.Card.CardSN)
 		}
 	}
-
-	ticker := time.NewTicker(scanPeriod)
-	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.TermChan():
 			return nil
 
-		case <-ticker.C:
-			monitor()
+		default:
+			process()
 		}
 	}
 }
@@ -137,9 +141,4 @@ func inspectFunc(devAddr byte, doorCount int, eventTopic string) func() edgex.In
 			Devices:    devices,
 		}
 	}
-}
-
-// 创建事件监控扫描指令
-func newCommandEventScan(devAddr byte) *irain.Command {
-	return irain.NewCommand(devAddr, irain.CmdEventScan, []byte{})
 }

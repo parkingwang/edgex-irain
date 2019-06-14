@@ -4,15 +4,12 @@ Topic = "irain/events"
 # 主板配置参数
 [BoardOptions]
   controllerId = 1
-  scanPeriod = "1s"
 
 # Socket配置参数
 [SocketClientOptions]
-  remoteAddress = "tcp://192.168.1.125:5000"
-  bufferSize = 512
+  remoteAddress = "192.168.1.125:5000"
   readTimeout = "1s"
   writeTimeout = "1s"
-  autoReconnect = true
-  reconnectInterval = "3s"
+  reconnectDelay = "1s"
   keepAlive = true
-  keepAliveInterval = "3s"
+  keepAliveInterval = "10s"
