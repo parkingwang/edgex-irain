@@ -9,19 +9,12 @@ IMAGE_ORG?=registry.cn-shenzhen.aliyuncs.com/edge-x
 IMAGE_NAME=${IMAGE_ORG}/${BINARY}:${IMAGE_TAG}
 
 
-all: build package.zip
-
-
 build: clean
 	@echo ">>> Go BUILD $(BINARY)"
 	@$(BUILD_ENV) go build $(LD_FLAGS) -o $(BINARY).raw .
 	rm -f $(BINARY)
 	upx -o $(BINARY) $(BINARY).raw
 	rm -f $(BINARY).raw
-
-
-package.zip: build
-	zip -r package.zip $(BINARY) application.toml
 
 
 image: _build_image
@@ -37,6 +30,6 @@ push:
 	@echo ">>> Docker PUSH IMAGE: $<"
 	sudo docker push $(IMAGE_NAME)
 
-.PHONY: clean all
+.PHONY: clean build
 clean:
-	rm -f $(BINARY) package.zip
+	rm -f $(BINARY)
