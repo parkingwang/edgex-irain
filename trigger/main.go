@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/bitschen/go-socket"
 	"github.com/nextabc-lab/edgex-go"
 	"github.com/nextabc-lab/edgex-irain"
+	"github.com/yoojia/go-socket"
 	"github.com/yoojia/go-value"
 	"go.uber.org/zap"
 	"time"
@@ -115,25 +115,25 @@ func trigger(ctx edgex.Context) error {
 }
 
 func inspectFunc(controllerId byte, doorCount int, eventTopic string) func() edgex.Inspect {
-	deviceOf := func(doorId, direct int) edgex.VirtualDevice {
-		return edgex.VirtualDevice{
-			VirtualName: fmt.Sprintf(formatReaderAddr, controllerId, doorId),
-			Desc:        fmt.Sprintf("%d号门-读卡器", doorId),
-			Type:        edgex.DeviceTypeTrigger,
-			Virtual:     true,
-			EventTopic:  eventTopic,
+	deviceOf := func(doorId, direct int) edgex.VirtualNode {
+		return edgex.VirtualNode{
+			VirtualNodeName: fmt.Sprintf(formatReaderAddr, controllerId, doorId),
+			Desc:            fmt.Sprintf("%d号门-读卡器", doorId),
+			Type:            edgex.NodeTypeTrigger,
+			Virtual:         true,
+			EventTopic:      eventTopic,
 		}
 	}
 	return func() edgex.Inspect {
-		devices := make([]edgex.VirtualDevice, doorCount*2)
+		nodes := make([]edgex.VirtualNode, doorCount*2)
 		for d := 0; d < doorCount; d++ {
-			devices[d*2] = deviceOf(d+1, irain.DirectIn)
-			devices[d*2+1] = deviceOf(d+1, irain.DirectOut)
+			nodes[d*2] = deviceOf(d+1, irain.DirectIn)
+			nodes[d*2+1] = deviceOf(d+1, irain.DirectOut)
 		}
 		return edgex.Inspect{
-			Vendor:         irain.VendorName,
-			DriverName:     irain.DriverName,
-			VirtualDevices: devices,
+			Vendor:       irain.VendorName,
+			DriverName:   irain.DriverName,
+			VirtualNodes: nodes,
 		}
 	}
 }

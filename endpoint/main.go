@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/bitschen/go-socket"
 	"github.com/nextabc-lab/edgex-go"
 	"github.com/nextabc-lab/edgex-irain"
 	"github.com/yoojia/go-at"
+	"github.com/yoojia/go-socket"
 	"github.com/yoojia/go-value"
 	"go.uber.org/zap"
 	"time"
@@ -64,9 +64,10 @@ func endpoint(ctx edgex.Context) error {
 
 	buffer := make([]byte, 256)
 	endpoint := ctx.NewEndpoint(edgex.EndpointOptions{
-		NodeName:    nodeName,
-		RpcAddr:     rpcAddress,
-		InspectFunc: inspectFunc(controllerId, int(doorCount)),
+		NodeName:        nodeName,
+		RpcAddr:         rpcAddress,
+		SerialExecuting: true, // 艾润品牌主板不支持并发处理
+		InspectFunc:     inspectFunc(controllerId, int(doorCount)),
 	})
 
 	// 处理控制指令
@@ -119,25 +120,25 @@ func endpoint(ctx edgex.Context) error {
 }
 
 func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
-	deviceOf := func(doorId int) edgex.VirtualDevice {
+	deviceOf := func(doorId int) edgex.VirtualNode {
 		// Address 可以自动从环境变量中获取
-		return edgex.VirtualDevice{
-			VirtualName: fmt.Sprintf(formatSwitchAddr, controllerId, doorId),
-			Desc:        fmt.Sprintf("%d号门-电磁开关", doorId),
-			Type:        edgex.DeviceTypeEndpoint,
-			Virtual:     true,
-			Command:     fmt.Sprintf("AT+OPEN=%d", doorId),
+		return edgex.VirtualNode{
+			VirtualNodeName: fmt.Sprintf(formatSwitchAddr, controllerId, doorId),
+			Desc:            fmt.Sprintf("%d号门-电磁开关", doorId),
+			Type:            edgex.NodeTypeEndpoint,
+			Virtual:         true,
+			Command:         fmt.Sprintf("AT+OPEN=%d", doorId),
 		}
 	}
 	return func() edgex.Inspect {
-		devices := make([]edgex.VirtualDevice, doorCount)
+		nodes := make([]edgex.VirtualNode, doorCount)
 		for d := 0; d < doorCount; d++ {
-			devices[d] = deviceOf(d + 1)
+			nodes[d] = deviceOf(d + 1)
 		}
 		return edgex.Inspect{
-			Vendor:         irain.VendorName,
-			DriverName:     irain.DriverName,
-			VirtualDevices: devices,
+			Vendor:       irain.VendorName,
+			DriverName:   irain.DriverName,
+			VirtualNodes: nodes,
 		}
 	}
 }

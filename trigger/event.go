@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/bitschen/go-jsonx"
 	"github.com/nextabc-lab/edgex-irain"
 	"github.com/parkingwang/go-wg26"
 	"github.com/pkg/errors"
+	"github.com/yoojia/go-jsonx"
 )
 
 //
