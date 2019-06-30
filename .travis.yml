@@ -1,5 +1,8 @@
-dist: xenial
 sudo: required
+language: go
+go:
+  - "1.12.4"
+dist: xenial
 
 services:
   - docker
@@ -8,10 +11,6 @@ addons:
   apt:
     packages:
       - docker-ce
-
-language: go
-go:
-  - "1.12.4"
 
 env:
   - DOCKER_CLI_EXPERIMENTAL=enabled
@@ -26,10 +25,7 @@ before_script:
 
 script:
   - go mod download
-  - ./build.sh image
-
-after_success:
-  - ./build.sh push manifest
+  - ./build.sh
 
 branches:
   only:
