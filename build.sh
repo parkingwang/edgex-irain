@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export DOCKER_CLI_EXPERIMENTAL=enabled
+
 modules=( "endpoint" "trigger" )
 
 makeModule() {
@@ -9,6 +11,7 @@ makeModule() {
         cd ${dir}
         GOOS=linux GOARCH=arm make -f ../Makefile $*
         GOOS=linux GOARCH=amd64 make -f ../Makefile $*
+        cat ~/.docker/config.json
         GOOS=linux make -f ../Makefile manifest
         cd -
     done
