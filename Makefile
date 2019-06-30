@@ -43,6 +43,7 @@ manifest:
 	sudo docker manifest annotate $(IMAGE_NAME_VERSION) $(IMAGE_NAME_AMD64) --arch amd64
 	sudo docker manifest push $(IMAGE_NAME_VERSION)
 
-.PHONY: clean build
 clean:
 	rm -f $(BINARY)
+
+.PHONY: clean build

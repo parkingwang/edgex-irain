@@ -29,8 +29,7 @@ script:
   - ./build.sh image
 
 after_success:
-  - ./build.sh push
-  - ./build.sh manifest
+  - ./build.sh push manifest
 
 branches:
   only:
