@@ -13,7 +13,7 @@ import (
 
 //
 // Author: 陈哈哈 yoojiachen@gmail.com
-// 使用SocketTCP客户端连接的Trigger。注意与Endpoint都是使用Client模式。
+// 使用Socket客户端连接的Trigger。注意与Endpoint都是使用Client模式。
 
 const (
 	// 设备地址格式：　READER - 控制器地址 - 门号
@@ -35,6 +35,7 @@ func trigger(ctx edgex.Context) error {
 
 	sockOpts := value.Of(config["SocketClientOptions"]).MustMap()
 	remoteAddress := value.Of(sockOpts["remoteAddress"]).String()
+	network := value.Of(sockOpts["network"]).StringOrDefault("udp")
 
 	trigger := ctx.NewTrigger(edgex.TriggerOptions{
 		NodeName:    nodeName,
@@ -42,10 +43,8 @@ func trigger(ctx edgex.Context) error {
 		InspectFunc: inspectFunc(controllerId, int(doorCount), eventTopic),
 	})
 
-	ctx.Log().Debugf("TCP连接服务端地址: [tcp://%s]", remoteAddress)
-
 	cli := sock.New(sock.Options{
-		Network:           "tcp",
+		Network:           network,
 		Addr:              remoteAddress,
 		ReadTimeout:       value.Of(sockOpts["readTimeout"]).DurationOfDefault(time.Second),
 		WriteTimeout:      value.Of(sockOpts["writeTimeout"]).DurationOfDefault(time.Second),
@@ -53,14 +52,19 @@ func trigger(ctx edgex.Context) error {
 		KeepAliveInterval: value.Of(sockOpts["keepAliveInterval"]).DurationOfDefault(time.Second * 10),
 		ReconnectDelay:    value.Of(sockOpts["reconnectDelay"]).DurationOfDefault(time.Second),
 	})
+
+	log := ctx.Log()
+
+	log.Debugf("客户端连接: [%s] %s", network, remoteAddress)
+
 	if err := cli.Connect(); nil != err {
-		ctx.Log().Error("TCP客户端连接失败", err)
+		log.Error("客户端连接失败", err)
 	} else {
-		ctx.Log().Debug("TCP客户端连接成功")
+		log.Debug("客户端连接成功")
 	}
 	defer func() {
 		if err := cli.Disconnect(); nil != err {
-			ctx.Log().Error("TCP客户端关闭连接失败：", err)
+			log.Error("客户端关闭连接失败：", err)
 		}
 	}()
 
@@ -76,9 +80,9 @@ func trigger(ctx edgex.Context) error {
 			if sock.IsNetTempErr(err) {
 				return
 			}
-			ctx.Log().Error("接收监控事件出错: ", err)
+			log.Error("接收监控事件出错: ", err)
 			if err := cli.Reconnect(); nil != err {
-				ctx.Log().Error("尝试重新连接: ", err)
+				log.Error("尝试重新连接: ", err)
 			}
 		}
 		data := buffer[:n]
@@ -91,15 +95,15 @@ func trigger(ctx edgex.Context) error {
 		})
 		event, err := parseEvent(controllerId, data)
 		if nil != err {
-			ctx.Log().Error("事件监控返回无法解析数据: ", err)
+			log.Error("事件监控返回无法解析数据: ", err)
 			return
 		}
 		// 发送事件
 		deviceName := fmt.Sprintf(formatReaderAddr, event.ControllerId, event.DoorId)
 		if err := trigger.SendEventMessage(deviceName, event.Bytes()); nil != err {
-			ctx.Log().Error("触发事件出错: ", err)
+			log.Error("触发事件出错: ", err)
 		} else {
-			ctx.Log().Debugf("接收到刷卡数据, Device: %s, DoorId: %d, Card[WG26SN]: %s, Card[SN]: %s", deviceName, event.DoorId, event.Card.Wg26SN, event.Card.CardSN)
+			log.Debugf("接收到刷卡数据, Device: %s, DoorId: %d, Card[WG26SN]: %s, Card[SN]: %s", deviceName, event.DoorId, event.Card.Wg26SN, event.Card.CardSN)
 		}
 	}
 

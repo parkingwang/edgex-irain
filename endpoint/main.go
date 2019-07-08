@@ -30,6 +30,7 @@ func endpoint(ctx edgex.Context) error {
 	rpcAddress := value.Of(config["RpcAddress"]).String()
 
 	sockOpts := value.Of(config["SocketClientOptions"]).MustMap()
+	network := value.Of(sockOpts["network"]).StringOrDefault("udp")
 	remoteAddress := value.Of(sockOpts["remoteAddress"]).String()
 
 	boardOpts := value.Of(config["BoardOptions"]).MustMap()
@@ -39,13 +40,11 @@ func endpoint(ctx edgex.Context) error {
 	// AT指令解析
 	atRegistry := at.NewAtRegister()
 	atCommands(atRegistry, byte(controllerId))
-	
+
 	log := ctx.Log()
 
-	log.Debugf("TCP客户端连接: [%s]", remoteAddress)
-
 	cli := sock.New(sock.Options{
-		Network:           "tcp",
+		Network:           network,
 		Addr:              remoteAddress,
 		ReadTimeout:       value.Of(sockOpts["readTimeout"]).DurationOfDefault(time.Second),
 		WriteTimeout:      value.Of(sockOpts["writeTimeout"]).DurationOfDefault(time.Second),
@@ -53,14 +52,17 @@ func endpoint(ctx edgex.Context) error {
 		KeepAliveInterval: value.Of(sockOpts["keepAliveInterval"]).DurationOfDefault(time.Second * 10),
 		ReconnectDelay:    value.Of(sockOpts["reconnectDelay"]).DurationOfDefault(time.Second),
 	})
+
+	log.Debugf("客户端连接: [%s] %s", network, remoteAddress)
+
 	if err := cli.Connect(); nil != err {
-		log.Error("TCP客户端连接失败", err)
+		log.Error("客户端连接失败", err)
 	} else {
-		log.Debug("TCP客户端连接成功")
+		log.Debug("客户端连接成功")
 	}
 	defer func() {
 		if err := cli.Disconnect(); nil != err {
-			log.Error("TCP客户端关闭连接失败：", err)
+			log.Error("客户端关闭连接失败：", err)
 		}
 	}()
 
@@ -78,6 +80,7 @@ func endpoint(ctx edgex.Context) error {
 		log.Debug("接收到控制指令: " + atCmd)
 		cmd, err := atRegistry.Apply(atCmd)
 		if nil != err {
+			log.Error("控制指令格式错误: " + err.Error())
 			return edgex.NewMessageString(nodeName, "EX=ERR:BAD_CMD:"+err.Error())
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
@@ -124,7 +127,6 @@ func endpoint(ctx edgex.Context) error {
 
 func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
 	deviceOf := func(doorId int) edgex.VirtualNode {
-		// Address 可以自动从环境变量中获取
 		return edgex.VirtualNode{
 			VirtualNodeName: fmt.Sprintf(formatSwitchAddr, controllerId, doorId),
 			Desc:            fmt.Sprintf("%d号门-电磁开关", doorId),
