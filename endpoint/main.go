@@ -39,8 +39,10 @@ func endpoint(ctx edgex.Context) error {
 	// AT指令解析
 	atRegistry := at.NewAtRegister()
 	atCommands(atRegistry, byte(controllerId))
+	
+	log := ctx.Log()
 
-	ctx.Log().Debugf("TCP客户端连接: [%s]", remoteAddress)
+	log.Debugf("TCP客户端连接: [%s]", remoteAddress)
 
 	cli := sock.New(sock.Options{
 		Network:           "tcp",
@@ -52,13 +54,13 @@ func endpoint(ctx edgex.Context) error {
 		ReconnectDelay:    value.Of(sockOpts["reconnectDelay"]).DurationOfDefault(time.Second),
 	})
 	if err := cli.Connect(); nil != err {
-		ctx.Log().Error("TCP客户端连接失败", err)
+		log.Error("TCP客户端连接失败", err)
 	} else {
-		ctx.Log().Debug("TCP客户端连接成功")
+		log.Debug("TCP客户端连接成功")
 	}
 	defer func() {
 		if err := cli.Disconnect(); nil != err {
-			ctx.Log().Error("TCP客户端关闭连接失败：", err)
+			log.Error("TCP客户端关闭连接失败：", err)
 		}
 	}()
 
@@ -73,23 +75,24 @@ func endpoint(ctx edgex.Context) error {
 	// 处理控制指令
 	endpoint.Serve(func(msg edgex.Message) (out edgex.Message) {
 		atCmd := string(msg.Body())
-		ctx.Log().Debug("接收到控制指令: " + atCmd)
+		log.Debug("接收到控制指令: " + atCmd)
 		cmd, err := atRegistry.Apply(atCmd)
 		if nil != err {
-			return edgex.NewMessageString(nodeName, "EX=ERR:"+err.Error())
+			return edgex.NewMessageString(nodeName, "EX=ERR:BAD_CMD:"+err.Error())
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
 			log.Debug("艾润指令码: " + hex.EncodeToString(cmd))
 		})
 		// Write
 		if _, err := cli.Write(cmd); nil != err {
-			return edgex.NewMessageString(nodeName, "EX=ERR:"+err.Error())
+			log.Error("发送/写入控制指令出错", err)
+			return edgex.NewMessageString(nodeName, "EX=ERR:WRITE:"+err.Error())
 		}
 		// Read
 		var n = int(0)
 		for i := 0; i < 5; i++ {
 			if n, err = cli.Read(buffer); nil != err {
-				ctx.Log().Errorf("读取设备响应数据出错[%d]: %s", i, err.Error())
+				log.Errorf("读取设备响应数据出错[%d]: %s", i, err.Error())
 				<-time.After(time.Millisecond * 500)
 			} else {
 				break
@@ -100,13 +103,13 @@ func endpoint(ctx edgex.Context) error {
 		data := buffer[:n]
 		if n > 0 {
 			if irain.CheckProtoValid(data) {
-				ctx.Log().Error("解析响应数据出错", err)
-				body = "EX=ERR:PARSE_ERR"
+				log.Error("解析响应数据出错", err)
+				body = "EX=ERR:PARSE_REPLY_ERR"
 			} else {
 				body = "EX=OK"
 			}
 		}
-		ctx.Log().Debug("接收到控制响应: " + body)
+		log.Debug("接收到控制响应: " + body)
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
 			log.Debug("响应码: " + hex.EncodeToString(data))
 		})
