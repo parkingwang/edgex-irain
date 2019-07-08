@@ -35,7 +35,7 @@ func trigger(ctx edgex.Context) error {
 
 	sockOpts := value.Of(config["SocketClientOptions"]).MustMap()
 	remoteAddress := value.Of(sockOpts["remoteAddress"]).String()
-	network := value.Of(sockOpts["network"]).StringOrDefault("udp")
+	network := value.Of(sockOpts["network"]).StringOrDefault("tcp")
 
 	trigger := ctx.NewTrigger(edgex.TriggerOptions{
 		NodeName:    nodeName,

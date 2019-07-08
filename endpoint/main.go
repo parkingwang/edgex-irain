@@ -30,7 +30,7 @@ func endpoint(ctx edgex.Context) error {
 	rpcAddress := value.Of(config["RpcAddress"]).String()
 
 	sockOpts := value.Of(config["SocketClientOptions"]).MustMap()
-	network := value.Of(sockOpts["network"]).StringOrDefault("udp")
+	network := value.Of(sockOpts["network"]).StringOrDefault("tcp")
 	remoteAddress := value.Of(sockOpts["remoteAddress"]).String()
 
 	boardOpts := value.Of(config["BoardOptions"]).MustMap()

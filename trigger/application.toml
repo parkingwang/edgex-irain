@@ -8,7 +8,7 @@ Topic = "irain/events"
 # Socket配置参数
 [SocketClientOptions]
   remoteAddress = "192.168.1.107:5000"
-  network = "udp"
+  network = "tcp"
   readTimeout = "1s"
   writeTimeout = "1s"
   reconnectDelay = "1s"
