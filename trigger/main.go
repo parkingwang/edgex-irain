@@ -103,7 +103,8 @@ func trigger(ctx edgex.Context) error {
 		if err := trigger.SendEventMessage(deviceName, event.Bytes()); nil != err {
 			log.Error("触发事件出错: ", err)
 		} else {
-			log.Debugf("接收到刷卡数据, Device: %s, DoorId: %d, Card[WG26SN]: %s, Card[SN]: %s", deviceName, event.DoorId, event.Card.Wg26SN, event.Card.CardSN)
+			log.Debugf("接收到刷卡数据, Device: %s, DoorId: %d, Card[WG26SN]: %s, Card[SN]: %s",
+				deviceName, event.DoorId, event.Card.Wg26SN, event.Card.CardSN)
 		}
 	}
 

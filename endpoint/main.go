@@ -81,7 +81,7 @@ func endpoint(ctx edgex.Context) error {
 		cmd, err := atRegistry.Apply(atCmd)
 		if nil != err {
 			log.Error("控制指令格式错误: " + err.Error())
-			return edgex.NewMessageString(nodeName, "EX=ERR:BAD_CMD:"+err.Error())
+			return endpoint.NextMessage(nodeName, []byte("EX=ERR:BAD_CMD:"+err.Error()))
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
 			log.Debug("艾润指令码: " + hex.EncodeToString(cmd))
@@ -89,7 +89,7 @@ func endpoint(ctx edgex.Context) error {
 		// Write
 		if _, err := cli.Write(cmd); nil != err {
 			log.Error("发送/写入控制指令出错", err)
-			return edgex.NewMessageString(nodeName, "EX=ERR:WRITE:"+err.Error())
+			return endpoint.NextMessage(nodeName, []byte("EX=ERR:WRITE:"+err.Error()))
 		}
 		// Read
 		var n = int(0)
@@ -102,21 +102,21 @@ func endpoint(ctx edgex.Context) error {
 			}
 		}
 		// parse
-		body := "EX=ERR:NO-REPLY"
+		reply := "EX=ERR:NO-REPLY"
 		data := buffer[:n]
 		if n > 0 {
 			if irain.CheckProtoValid(data) {
 				log.Error("解析响应数据出错", err)
-				body = "EX=ERR:PARSE_REPLY_ERR"
+				reply = "EX=ERR:PARSE_REPLY_ERR"
 			} else {
-				body = "EX=OK"
+				reply = "EX=OK"
 			}
 		}
-		log.Debug("接收到控制响应: " + body)
+		log.Debug("接收到控制响应: " + reply)
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
 			log.Debug("响应码: " + hex.EncodeToString(data))
 		})
-		return edgex.NewMessageString(nodeName, body)
+		return endpoint.NextMessage(nodeName, []byte(reply))
 	})
 
 	endpoint.Startup()
