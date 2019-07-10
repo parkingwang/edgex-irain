@@ -88,7 +88,7 @@ func trigger(ctx edgex.Context) error {
 		}
 		data := buffer[:n]
 		// 检查艾润的数据格式。数据帧长度。
-		if !irain.CheckProtoValid(data) || n != FRAME_EVENT_LENGTH {
+		if !checkCardEventProto(data) {
 			return
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
@@ -141,5 +141,15 @@ func inspectFunc(controllerId byte, doorCount int, eventTopic string) func() edg
 			DriverName:   irain.DriverName,
 			VirtualNodes: nodes,
 		}
+	}
+}
+
+// 检查数据字节是否为刷卡协议
+func checkCardEventProto(data []byte) bool {
+	size := len(data)
+	if size == FRAME_EVENT_LENGTH && irain.CheckProtoValid(data) {
+		return true
+	} else {
+		return false
 	}
 }
