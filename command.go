@@ -74,7 +74,7 @@ func NewCommand(devAddr, cmdId byte, data []byte) *Command {
 // 检查数据字节是否为协议数据
 func CheckProtoValid(data []byte) bool {
 	size := len(data)
-	if size > 3 && DataStart == data[0] && DataEnd == data[size-1] {
+	if size > 2 && DataStart == data[0] && DataEnd == data[size-1] {
 		return true
 	} else {
 		return false
