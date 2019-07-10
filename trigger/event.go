@@ -3,13 +3,14 @@ package main
 import (
 	"github.com/nextabc-lab/edgex-irain"
 	"github.com/parkingwang/go-wg26"
-	"github.com/pkg/errors"
 	"github.com/yoojia/go-jsonx"
 )
 
 //
 // Author: 陈哈哈 yoojiachen@gmail.com
 //
+
+const FRAME_EVENT_LENGTH = 12
 
 // 刷卡数据
 type Event struct {
@@ -34,9 +35,6 @@ func (e *Event) Bytes() []byte {
 
 // 解析刷卡数据
 func parseEvent(devAddr byte, data []byte) (*Event, error) {
-	if len(data) != 12 {
-		return nil, errors.New("INVALID_IRAIN_EVENT")
-	}
 	// [0] 		e2
 	// [1-3]    a9 bc bf :维根26格式的卡号
 	// [4-9] 	ff ff 01 65 62 01 // 控制器时间

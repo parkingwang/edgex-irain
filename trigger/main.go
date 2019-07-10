@@ -71,7 +71,8 @@ func trigger(ctx edgex.Context) error {
 	trigger.Startup()
 	defer trigger.Shutdown()
 
-	buffer := make([]byte, 256)
+	// 刷卡数据只有12字节长度
+	buffer := make([]byte, FRAME_EVENT_LENGTH)
 
 	// 等待刷卡数据
 	process := func() {
@@ -86,8 +87,8 @@ func trigger(ctx edgex.Context) error {
 			}
 		}
 		data := buffer[:n]
-		// 检查艾润的数据格式
-		if !irain.CheckProtoValid(data) {
+		// 检查艾润的数据格式。数据帧长度。
+		if !irain.CheckProtoValid(data) || n != FRAME_EVENT_LENGTH {
 			return
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
