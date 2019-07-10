@@ -66,7 +66,6 @@ func endpoint(ctx edgex.Context) error {
 		}
 	}()
 
-	buffer := make([]byte, 256)
 	endpoint := ctx.NewEndpoint(edgex.EndpointOptions{
 		NodeName:        nodeName,
 		RpcAddr:         rpcAddress,
@@ -84,38 +83,14 @@ func endpoint(ctx edgex.Context) error {
 			return endpoint.NextMessage(nodeName, []byte("EX=ERR:BAD_CMD:"+err.Error()))
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
-			log.Debug("艾润指令码: " + hex.EncodeToString(cmd))
+			log.Debug("艾润控制指令码: " + hex.EncodeToString(cmd))
 		})
 		// Write
 		if _, err := cli.Write(cmd); nil != err {
 			log.Error("发送/写入控制指令出错", err)
 			return endpoint.NextMessage(nodeName, []byte("EX=ERR:WRITE:"+err.Error()))
 		}
-		// Read
-		var n = int(0)
-		for i := 0; i < 5; i++ {
-			if n, err = cli.Read(buffer); nil != err {
-				log.Errorf("读取设备响应数据出错[%d]: %s", i, err.Error())
-				<-time.After(time.Millisecond * 500)
-			} else {
-				break
-			}
-		}
-		// parse
-		reply := "EX=ERR:NO-REPLY"
-		data := buffer[:n]
-		if n > 0 {
-			if irain.CheckProtoValid(data) {
-				log.Error("解析响应数据出错", err)
-				reply = "EX=ERR:PARSE_REPLY_ERR"
-			} else {
-				reply = "EX=OK"
-			}
-		}
-		log.Debug("接收到控制响应: " + reply)
-		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
-			log.Debug("响应码: " + hex.EncodeToString(data))
-		})
+		reply := tryReadReply(ctx, cli)
 		return endpoint.NextMessage(nodeName, []byte(reply))
 	})
 
@@ -123,6 +98,36 @@ func endpoint(ctx edgex.Context) error {
 	defer endpoint.Shutdown()
 
 	return ctx.TermAwait()
+}
+
+// 读取设备响应数据
+// 只读取应答指令，忽略其它指令。最多读取5次，间隔100毫秒
+func tryReadReply(ctx edgex.Context, cli *sock.Client) string {
+	buffer := make([]byte, 3)
+	log := ctx.Log()
+	for i := 0; i < 5; i++ {
+		if n, err := cli.Read(buffer); nil != err {
+			log.Errorf("读取设备响应数据出错[%d]: %s", i, err.Error())
+			<-time.After(time.Millisecond * 100)
+		} else {
+			data := buffer[:n]
+			if n > 0 {
+				ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
+					log.Debug("接收到控制响应码: " + hex.EncodeToString(data))
+				})
+				if checkReplyProto(data) {
+					// 协议文档是 [0xE2 0x59/0x4E 0xE2]
+					// 但实测结果为 [0xF7 0x56 0x FC]
+					if data[1] == 0x56 || data[1] == 0x59 {
+						return "EX=OK"
+					} else {
+						return "EX=ERR:FAILED:" + hex.EncodeToString(data)
+					}
+				}
+			}
+		}
+	}
+	return "EX=ERR:NO_VALID_REPLY"
 }
 
 func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
@@ -146,4 +151,20 @@ func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
 			VirtualNodes: nodes,
 		}
 	}
+}
+
+// 检查数据字节是否为刷卡协议
+func checkReplyProto(data []byte) bool {
+	size := len(data)
+	// 协议文档是 [0xE2 0x59/0x4E 0xE2]
+	// 但实测结果为 [0xF7 0x56 0x FC]
+	if size == 3 && (isTheWhatFuckingUnknownReplyProto(size, data) || irain.CheckProtoValid(data)) {
+		return true
+	} else {
+		return false
+	}
+}
+
+func isTheWhatFuckingUnknownReplyProto(size int, data []byte) bool {
+	return 0xF7 == data[0] && 0xFC == data[size-1]
 }
