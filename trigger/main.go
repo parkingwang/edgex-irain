@@ -140,13 +140,3 @@ func inspectFunc(controllerId byte, doorCount int, eventTopic string) func() edg
 		}
 	}
 }
-
-// 检查数据字节是否为刷卡协议
-func checkCardEventProto(data []byte) bool {
-	size := len(data)
-	if size == FRAME_EVENT_LENGTH && irain.CheckProtoValid(data) {
-		return true
-	} else {
-		return false
-	}
-}
