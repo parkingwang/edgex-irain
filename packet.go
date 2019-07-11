@@ -127,19 +127,9 @@ func ReadMessage(in io.Reader, out *Message) (ok bool, err error) {
 		return false, ErrUnknownMessage
 	}
 	out.start = MessageStart
-	out.Payload = data[:len(data)-2]
+	out.Payload = data[:size-1]
 	out.end = MessageEnd
 	return true, nil
-}
-
-// 检查数据字节是否为协议数据
-func CheckProtoValid(data []byte) bool {
-	size := len(data)
-	if size > 2 && MessageStart == data[0] && MessageEnd == data[size-1] {
-		return true
-	} else {
-		return false
-	}
 }
 
 ////
