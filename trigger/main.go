@@ -77,11 +77,11 @@ func trigger(ctx edgex.Context) error {
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
 			log.Debug("接收监控事件数据: " + hex.EncodeToString(msg.Payload))
 		})
-		event, err := parseCardEvent(controllerId, msg.Payload)
-		if nil != err {
-			log.Error("事件监控返回无法解析数据: ", err)
+		if FrameCardEventLength != len(msg.Payload) {
 			return
 		}
+		event := new(Event)
+		parseCardEvent(controllerId, msg.Payload, event)
 		// 发送事件
 		deviceName := fmt.Sprintf(formatReaderAddr, event.ControllerId, event.DoorId)
 		if err := trigger.SendEventMessage(deviceName, event.Bytes()); nil != err {
