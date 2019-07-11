@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/nextabc-lab/edgex-irain"
 	"github.com/parkingwang/go-wg26"
 	"github.com/yoojia/go-jsonx"
@@ -10,7 +11,9 @@ import (
 // Author: 陈哈哈 yoojiachen@gmail.com
 //
 
-const FRAME_EVENT_LENGTH = 12
+var (
+	ErrUnknownCardEvent = errors.New("unknown card event")
+)
 
 // 刷卡数据
 type Event struct {
@@ -34,14 +37,15 @@ func (e *Event) Bytes() []byte {
 }
 
 // 解析刷卡数据
-func parseEvent(devAddr byte, data []byte) (*Event, error) {
-	// [0] 		e2
-	// [1-3]    a9 bc bf :维根26格式的卡号
-	// [4-9] 	ff ff 01 65 62 01 // 控制器时间
-	// [10]		12 门号
-	// [11]		e3
+func parseCardEvent(devAddr byte, payload []byte) (*Event, error) {
+	if 10 != len(payload) {
+		return nil, ErrUnknownCardEvent
+	}
+	// [0-2]    a9 bc bf :维根26格式的卡号
+	// [3-8] 	ff ff 01 65 62 01 // 控制器时间
+	// [9]		门号
 	door := byte(0)
-	switch data[10] & 0xF0 {
+	switch payload[9] & 0xF0 {
 	case 0x10:
 		door = 1
 	case 0x20:
@@ -52,7 +56,7 @@ func parseEvent(devAddr byte, data []byte) (*Event, error) {
 		door = 4
 	}
 	return &Event{
-		Card:         wg26.ParseFromWg26([3]byte{data[1], data[2], data[3]}),
+		Card:         wg26.ParseFromWg26([3]byte{payload[0], payload[1], payload[2]}),
 		ControllerId: devAddr,
 		State:        1,
 		DoorId:       door,

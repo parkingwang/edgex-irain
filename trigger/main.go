@@ -8,6 +8,7 @@ import (
 	"github.com/yoojia/go-socket"
 	"github.com/yoojia/go-value"
 	"go.uber.org/zap"
+	"io"
 	"time"
 )
 
@@ -71,30 +72,12 @@ func trigger(ctx edgex.Context) error {
 	trigger.Startup()
 	defer trigger.Shutdown()
 
-	// 刷卡数据只有12字节长度
-	buffer := make([]byte, FRAME_EVENT_LENGTH)
-
 	// 等待刷卡数据
-	process := func() {
-		n, err := cli.Read(buffer)
-		if nil != err {
-			if sock.IsNetTempErr(err) {
-				return
-			}
-			log.Error("接收监控事件出错: ", err)
-			if err := cli.Reconnect(); nil != err {
-				log.Error("尝试重新连接: ", err)
-			}
-		}
-		data := buffer[:n]
-		// 检查艾润的数据格式。数据帧长度。
-		if !checkCardEventProto(data) {
-			return
-		}
+	process := func(msg *irain.Message) {
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
-			log.Debug("接收监控事件数据: " + hex.EncodeToString(data))
+			log.Debug("接收监控事件数据: " + hex.EncodeToString(msg.Payload))
 		})
-		event, err := parseEvent(controllerId, data)
+		event, err := parseCardEvent(controllerId, msg.Payload)
 		if nil != err {
 			log.Error("事件监控返回无法解析数据: ", err)
 			return
@@ -109,13 +92,27 @@ func trigger(ctx edgex.Context) error {
 		}
 	}
 
+	// 读数据循环
+	message := new(irain.Message)
 	for {
 		select {
 		case <-ctx.TermChan():
 			return nil
 
 		default:
-			process()
+			err := cli.ReadWith(func(in io.Reader) error {
+				if ok, err := irain.ReadMessage(in, message); ok {
+					process(message)
+					return nil
+				} else {
+					return err
+				}
+			})
+			if nil != err && !sock.IsNetTempErr(err) {
+				ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
+					log.Error("读取监控数据出错: " + err.Error())
+				})
+			}
 		}
 	}
 }

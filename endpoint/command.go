@@ -58,7 +58,7 @@ func atCommands(registry *at.AtRegister, devAddr byte) {
 		w.NextBytes([]byte{'7', 'F'})
 		// 29、30:大门
 		w.NextBytes([]byte{'0', '1'})
-		return irain.NewCommand(devAddr, irain.CmdCardAdd, w.Bytes()).Bytes(), nil
+		return irain.NewIrCommand(devAddr, irain.CmdIdCardAdd, w.Bytes()).Bytes(), nil
 	}
 	registry.AddX("ADD", 1, addHandler)
 	registry.Add("ADD0", addHandler)
@@ -83,19 +83,19 @@ func atCommands(registry *at.AtRegister, devAddr byte) {
 
 // 创建远程开门指令
 func newCommandRemoteOpen(devAddr, doorId byte) *irain.Command {
-	return irain.NewCommand(devAddr, irain.CmdRemoteOpen, []byte{doorId})
+	return irain.NewIrCommand(devAddr, irain.CmdIdRemoteOpen, []byte{doorId})
 }
 
 // 创建清除卡号指令
 func NewCommandCardClear(devAddr byte) *irain.Command {
-	return irain.NewCommand(devAddr, irain.CmdCardClear, []byte{
+	return irain.NewIrCommand(devAddr, irain.CmdIdCardClear, []byte{
 		0x0078, 0x0079, 0x007A,
 	})
 }
 
 // 创建删除卡号指令
 func NewCommandCardDelete(devAddr byte, card []byte) *irain.Command {
-	return irain.NewCommand(devAddr, irain.CmdCardDelete, card)
+	return irain.NewIrCommand(devAddr, irain.CmdIdCardDelete, card)
 }
 
 func parseInt(val string) (int64, error) {

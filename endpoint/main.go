@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/nextabc-lab/edgex-go"
 	"github.com/nextabc-lab/edgex-irain"
@@ -9,6 +10,7 @@ import (
 	"github.com/yoojia/go-socket"
 	"github.com/yoojia/go-value"
 	"go.uber.org/zap"
+	"io"
 	"time"
 )
 
@@ -18,6 +20,12 @@ import (
 const (
 	// 设备地址格式：　SWITCH - 控制器地址 - 门号
 	formatSwitchAddr = "SWITCH-%d-%d"
+)
+
+var (
+	RepOK   = errors.New("EX=OK")
+	RepFail = errors.New("EX=ERR:FAILED")
+	RepNop  = errors.New("EX=ERR:NO_VALID_REPLY")
 )
 
 func main() {
@@ -103,31 +111,27 @@ func endpoint(ctx edgex.Context) error {
 // 读取设备响应数据
 // 只读取应答指令，忽略其它指令。最多读取5次，间隔100毫秒
 func tryReadReply(ctx edgex.Context, cli *sock.Client) string {
-	buffer := make([]byte, 3)
 	log := ctx.Log()
+	msg := new(irain.Message)
 	for i := 0; i < 5; i++ {
-		if n, err := cli.Read(buffer); nil != err {
+		err := cli.ReadWith(func(in io.Reader) error {
+			if ok, e := irain.ReadMessage(in, msg); !ok {
+				return e
+			} else if msg.IsSuccess() {
+				return RepOK
+			} else {
+				return RepFail
+			}
+		})
+		if err != RepOK || err != RepFail {
 			log.Errorf("读取设备响应数据出错[%d]: %s", i, err.Error())
 			<-time.After(time.Millisecond * 100)
+			continue
 		} else {
-			data := buffer[:n]
-			if n > 0 {
-				ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
-					log.Debug("接收到控制响应码: " + hex.EncodeToString(data))
-				})
-				if checkReplyProto(data) {
-					// 协议文档是 [0xE2 0x59/0x4E 0xE2]
-					// 但实测结果为 [0xF7 0x56 0x FC]
-					if data[1] == 0x56 || data[1] == 0x59 {
-						return "EX=OK"
-					} else {
-						return "EX=ERR:FAILED:" + hex.EncodeToString(data)
-					}
-				}
-			}
+			return err.Error()
 		}
 	}
-	return "EX=ERR:NO_VALID_REPLY"
+	return RepNop.Error()
 }
 
 func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
@@ -151,20 +155,4 @@ func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
 			VirtualNodes: nodes,
 		}
 	}
-}
-
-// 检查数据字节是否为刷卡协议
-func checkReplyProto(data []byte) bool {
-	size := len(data)
-	// 协议文档是 [0xE2 0x59/0x4E 0xE2]
-	// 但实测结果为 [0xF7 0x56 0x FC]
-	if size == 3 && (isTheWhatFuckingUnknownReplyProto(size, data) || irain.CheckProtoValid(data)) {
-		return true
-	} else {
-		return false
-	}
-}
-
-func isTheWhatFuckingUnknownReplyProto(size int, data []byte) bool {
-	return 0xF7 == data[0] && 0xFC == data[size-1]
 }

@@ -29,8 +29,8 @@ github.com/yoojia/go-bytes v0.0.2-1 h1:B/O4v5mwLz8mqO4WP30rC8y7cgPAtkb8K7sHsnQ06
 github.com/yoojia/go-bytes v0.0.2-1/go.mod h1:eMZ3hmJzpwxOmwB/t7gpJr4Y99FG/Qq33pwpt47TpcQ=
 github.com/yoojia/go-jsonx v1.1.1 h1:Mi9Q82SRagt5Zo+b3CNZlVLzKR4yfMKW58jpCOdjkpg=
 github.com/yoojia/go-jsonx v1.1.1/go.mod h1:Y8rQbOLwD0uOND+rbv6UlRCMWqFcUPgiAAYaNFHwe7E=
-github.com/yoojia/go-socket v0.0.1-1 h1:MBJLm4wGtcqePthvug5V1WQHdTsJ+5dC3Sy1IPzB5eQ=
-github.com/yoojia/go-socket v0.0.1-1/go.mod h1:U6HwNfFBRmk0YgpE5SFAgJebD6GFdG6Cf6dHZo5sZm4=
+github.com/yoojia/go-socket v0.0.2 h1:z+O5QNGNSryTN2G/NlG29I9XWYhvcPaZRr64VaOwCCg=
+github.com/yoojia/go-socket v0.0.2/go.mod h1:U6HwNfFBRmk0YgpE5SFAgJebD6GFdG6Cf6dHZo5sZm4=
 github.com/yoojia/go-value v0.0.4-3 h1:P5r2VCB9FfTLSMGxQCy5jwr1rCZUoDVh4TigxOjC1lc=
 github.com/yoojia/go-value v0.0.4-3/go.mod h1:g55Bt5kQzfatl2kiKhH6b/oHECM+W2xgfDGyV5VMxwM=
 go.uber.org/atomic v1.4.0 h1:cxzIVoETapQEqDhQu3QfnvXAV4AlzcvUCxkVUFw3+EU=
