@@ -60,7 +60,8 @@ func (dk *Command) Bytes() []byte {
 	br.NextByte(dk.CmdId)
 	br.NextBytes(dk.Payload[:])
 	br.NextByte(dk.sum)
-	br.NextByte(dk.end)
+	// 控制器问题，需要删除最后一个D3字节
+	// br.NextByte(dk.end)
 	return br.Bytes()
 }
 
