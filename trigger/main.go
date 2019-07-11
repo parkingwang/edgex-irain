@@ -74,12 +74,12 @@ func trigger(ctx edgex.Context) error {
 
 	// 等待刷卡数据
 	process := func(msg *irain.Message) {
-		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
-			log.Debug("接收监控事件数据: " + hex.EncodeToString(msg.Payload))
-		})
 		if FrameCardEventLength != len(msg.Payload) {
 			return
 		}
+		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
+			log.Debug("接收监控事件数据: " + hex.EncodeToString(msg.Payload))
+		})
 		event := new(Event)
 		parseCardEvent(controllerId, msg.Payload, event)
 		// 发送事件

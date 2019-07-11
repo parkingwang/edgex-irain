@@ -123,7 +123,7 @@ func tryReadReply(ctx edgex.Context, cli *sock.Client) string {
 				return RepFail
 			}
 		})
-		if err != RepOK || err != RepFail {
+		if err != RepOK && err != RepFail {
 			log.Errorf("读取设备响应数据出错[%d]: %s", i, err.Error())
 			<-time.After(time.Millisecond * 100)
 			continue
