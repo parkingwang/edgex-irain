@@ -37,7 +37,7 @@ func endpoint(ctx edgex.Context) error {
 	remoteAddress := value.Of(sockOpts["remoteAddress"]).String()
 
 	boardOpts := value.Of(config["BoardOptions"]).MustMap()
-	controllerId := uint32(value.Of(boardOpts["controllerId"]).MustInt64())
+	controllerId := byte(value.Of(boardOpts["controllerId"]).MustInt64())
 	doorCount := value.Of(boardOpts["doorCount"]).Int64OrDefault(4)
 
 	// AT指令解析
