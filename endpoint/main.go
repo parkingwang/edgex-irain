@@ -129,7 +129,7 @@ func tryReadReply(ctx edgex.Context, cli *sock.Client) string {
 	return RepNop.Error()
 }
 
-func nodeFunc(nodeName string, controllerId uint32, doorCount int) func() edgex.MainNode {
+func nodeFunc(nodeName string, controllerId byte, doorCount int) func() edgex.MainNode {
 	deviceOf := func(doorId int) edgex.VirtualNode {
 		return edgex.VirtualNode{
 			Major:      fmt.Sprintf("%d", controllerId),
