@@ -41,7 +41,7 @@ func trigger(ctx edgex.Context) error {
 	trigger := ctx.NewTrigger(edgex.TriggerOptions{
 		NodeName:        nodeName,
 		Topic:           eventTopic,
-		InspectNodeFunc: nodeInfo(controllerId, int(doorCount)),
+		InspectNodeFunc: nodeFunc(nodeName, controllerId, int(doorCount)),
 	})
 
 	cli := sock.New(sock.Options{
@@ -117,7 +117,7 @@ func trigger(ctx edgex.Context) error {
 	}
 }
 
-func nodeInfo(controllerId byte, doorCount int) func() edgex.MainNode {
+func nodeFunc(nodeName string, controllerId byte, doorCount int) func() edgex.MainNode {
 	deviceOf := func(doorId, direct int) edgex.VirtualNode {
 		directName := irain.DirectName(byte(direct))
 		return edgex.VirtualNode{
@@ -134,9 +134,10 @@ func nodeInfo(controllerId byte, doorCount int) func() edgex.MainNode {
 			nodes[d*2+1] = deviceOf(d+1, irain.DirectOut)
 		}
 		return edgex.MainNode{
+			NodeType:     edgex.NodeTypeTrigger,
+			NodeName:     nodeName,
 			Vendor:       irain.VendorName,
 			ConnDriver:   irain.DriverName,
-			NodeType:     edgex.NodeTypeTrigger,
 			VirtualNodes: nodes,
 		}
 	}

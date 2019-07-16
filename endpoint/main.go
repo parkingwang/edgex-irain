@@ -73,7 +73,7 @@ func endpoint(ctx edgex.Context) error {
 		NodeName:        nodeName,
 		RpcAddr:         rpcAddress,
 		SerialExecuting: true, // 艾润品牌主板不支持并发处理
-		InspectNodeFunc: nodeInfo(controllerId, int(doorCount)),
+		InspectNodeFunc: nodeFunc(nodeName, controllerId, int(doorCount)),
 	})
 
 	// 处理控制指令
@@ -129,7 +129,7 @@ func tryReadReply(ctx edgex.Context, cli *sock.Client) string {
 	return RepNop.Error()
 }
 
-func nodeInfo(controllerId uint32, doorCount int) func() edgex.MainNode {
+func nodeFunc(nodeName string, controllerId uint32, doorCount int) func() edgex.MainNode {
 	deviceOf := func(doorId int) edgex.VirtualNode {
 		return edgex.VirtualNode{
 			Major:      fmt.Sprintf("%d", controllerId),
@@ -146,6 +146,7 @@ func nodeInfo(controllerId uint32, doorCount int) func() edgex.MainNode {
 		}
 		return edgex.MainNode{
 			NodeType:     edgex.NodeTypeEndpoint,
+			NodeName:     nodeName,
 			Vendor:       irain.VendorName,
 			ConnDriver:   irain.DriverName,
 			VirtualNodes: nodes,
