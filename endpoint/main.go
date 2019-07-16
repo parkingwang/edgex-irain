@@ -17,11 +17,6 @@ import (
 //
 // Author: 陈哈哈 bitschen@163.com
 
-const (
-	// 设备地址格式：　SWITCH - 控制器地址 - 门号
-	formatSwitchAddr = "SWITCH-%d-%d"
-)
-
 var (
 	RepOK   = errors.New("EX=OK")
 	RepFail = errors.New("EX=ERR:FAILED")
@@ -78,7 +73,7 @@ func endpoint(ctx edgex.Context) error {
 		NodeName:        nodeName,
 		RpcAddr:         rpcAddress,
 		SerialExecuting: true, // 艾润品牌主板不支持并发处理
-		InspectFunc:     inspectFunc(controllerId, int(doorCount)),
+		InspectNodeFunc: nodeInfo(controllerId, int(doorCount)),
 	})
 
 	// 处理控制指令
@@ -134,24 +129,25 @@ func tryReadReply(ctx edgex.Context, cli *sock.Client) string {
 	return RepNop.Error()
 }
 
-func inspectFunc(controllerId uint32, doorCount int) func() edgex.Inspect {
+func nodeInfo(controllerId uint32, doorCount int) func() edgex.MainNode {
 	deviceOf := func(doorId int) edgex.VirtualNode {
 		return edgex.VirtualNode{
-			VirtualNodeName: fmt.Sprintf(formatSwitchAddr, controllerId, doorId),
-			Desc:            fmt.Sprintf("%d号门-电磁开关", doorId),
-			Type:            edgex.NodeTypeEndpoint,
-			Virtual:         true,
-			Command:         fmt.Sprintf("AT+OPEN=%d", doorId),
+			Major:      fmt.Sprintf("%d", controllerId),
+			Minor:      fmt.Sprintf("%d", doorId),
+			Desc:       fmt.Sprintf("%d号门-电磁开关", doorId),
+			Virtual:    true,
+			RpcCommand: fmt.Sprintf("AT+OPEN=%d", doorId),
 		}
 	}
-	return func() edgex.Inspect {
+	return func() edgex.MainNode {
 		nodes := make([]edgex.VirtualNode, doorCount)
 		for d := 0; d < doorCount; d++ {
 			nodes[d] = deviceOf(d + 1)
 		}
-		return edgex.Inspect{
+		return edgex.MainNode{
+			NodeType:     edgex.NodeTypeEndpoint,
 			Vendor:       irain.VendorName,
-			DriverName:   irain.DriverName,
+			ConnDriver:   irain.DriverName,
 			VirtualNodes: nodes,
 		}
 	}

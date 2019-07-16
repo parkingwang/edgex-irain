@@ -39,9 +39,9 @@ func trigger(ctx edgex.Context) error {
 	network := value.Of(sockOpts["network"]).StringOrDefault("tcp")
 
 	trigger := ctx.NewTrigger(edgex.TriggerOptions{
-		NodeName:    nodeName,
-		Topic:       eventTopic,
-		InspectFunc: inspectFunc(controllerId, int(doorCount), eventTopic),
+		NodeName:        nodeName,
+		Topic:           eventTopic,
+		InspectNodeFunc: nodeInfo(controllerId, int(doorCount)),
 	})
 
 	cli := sock.New(sock.Options{
@@ -117,25 +117,26 @@ func trigger(ctx edgex.Context) error {
 	}
 }
 
-func inspectFunc(controllerId byte, doorCount int, eventTopic string) func() edgex.Inspect {
+func nodeInfo(controllerId byte, doorCount int) func() edgex.MainNode {
 	deviceOf := func(doorId, direct int) edgex.VirtualNode {
+		directName := irain.DirectName(byte(direct))
 		return edgex.VirtualNode{
-			VirtualNodeName: fmt.Sprintf(formatReaderAddr, controllerId, doorId),
-			Desc:            fmt.Sprintf("%d号门-读卡器", doorId),
-			Type:            edgex.NodeTypeTrigger,
-			Virtual:         true,
-			EventTopic:      eventTopic,
+			Major:   fmt.Sprintf("%d:%d", controllerId, doorId),
+			Minor:   directName,
+			Desc:    fmt.Sprintf("%d号门-%s-读卡器", doorId, directName),
+			Virtual: true,
 		}
 	}
-	return func() edgex.Inspect {
+	return func() edgex.MainNode {
 		nodes := make([]edgex.VirtualNode, doorCount*2)
 		for d := 0; d < doorCount; d++ {
 			nodes[d*2] = deviceOf(d+1, irain.DirectIn)
 			nodes[d*2+1] = deviceOf(d+1, irain.DirectOut)
 		}
-		return edgex.Inspect{
+		return edgex.MainNode{
 			Vendor:       irain.VendorName,
-			DriverName:   irain.DriverName,
+			ConnDriver:   irain.DriverName,
+			NodeType:     edgex.NodeTypeTrigger,
 			VirtualNodes: nodes,
 		}
 	}
