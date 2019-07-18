@@ -16,6 +16,10 @@ import (
 // Author: 陈哈哈 yoojiachen@gmail.com
 // 使用Socket客户端连接的Trigger。注意与Endpoint都是使用Client模式。
 
+const (
+	nodeIdFormat = "READER:%d:%d:%s"
+)
+
 func main() {
 	edgex.Run(trigger)
 }
@@ -78,12 +82,12 @@ func trigger(ctx edgex.Context) error {
 		event := new(Event)
 		parseCardEvent(controllerId, msg.Payload, event)
 		// 发送事件
-		deviceName := fmt.Sprintf(formatReaderAddr, event.ControllerId, event.DoorId)
-		if err := trigger.SendEventMessage(deviceName, event.Bytes()); nil != err {
+		virtualNodeId := fmt.Sprintf(nodeIdFormat, event.ControllerId, event.DoorId, irain.DirectName(event.Direct))
+		if err := trigger.SendEventMessage(virtualNodeId, event.Bytes()); nil != err {
 			log.Error("触发事件出错: ", err)
 		} else {
 			log.Debugf("接收到刷卡数据, Device: %s, DoorId: %d, Card[WG26SN]: %s, Card[SN]: %s",
-				deviceName, event.DoorId, event.Card.Wg26SN, event.Card.CardSN)
+				virtualNodeId, event.DoorId, event.Card.Wg26SN, event.Card.CardSN)
 		}
 	}
 
@@ -116,7 +120,7 @@ func nodeFunc(nodeName string, controllerId byte, doorCount int) func() edgex.Ma
 	deviceOf := func(doorId, direct int) edgex.VirtualNode {
 		directName := irain.DirectName(byte(direct))
 		return edgex.VirtualNode{
-			NodeId:  fmt.Sprintf("READER:%d:%d:%s", controllerId, doorId, directName),
+			NodeId:  fmt.Sprintf(nodeIdFormat, controllerId, doorId, directName),
 			Major:   fmt.Sprintf("%d:%d", controllerId, doorId),
 			Minor:   directName,
 			Desc:    fmt.Sprintf("%d号门-%s-读卡器", doorId, directName),
