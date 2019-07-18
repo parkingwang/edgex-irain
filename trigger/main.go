@@ -16,11 +16,6 @@ import (
 // Author: 陈哈哈 yoojiachen@gmail.com
 // 使用Socket客户端连接的Trigger。注意与Endpoint都是使用Client模式。
 
-const (
-	// 设备地址格式：　READER - 控制器地址 - 门号
-	formatReaderAddr = "READER-%d-%d"
-)
-
 func main() {
 	edgex.Run(trigger)
 }
@@ -121,6 +116,7 @@ func nodeFunc(nodeName string, controllerId byte, doorCount int) func() edgex.Ma
 	deviceOf := func(doorId, direct int) edgex.VirtualNode {
 		directName := irain.DirectName(byte(direct))
 		return edgex.VirtualNode{
+			NodeId:  fmt.Sprintf("READER:%d:%d:%s", controllerId, doorId, directName),
 			Major:   fmt.Sprintf("%d:%d", controllerId, doorId),
 			Minor:   directName,
 			Desc:    fmt.Sprintf("%d号门-%s-读卡器", doorId, directName),

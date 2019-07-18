@@ -119,11 +119,15 @@ func tryReadReply(ctx edgex.Context, cli *sock.Client) string {
 			}
 		})
 		if err != RepOK && err != RepFail {
-			log.Errorf("读取设备响应数据出错[%d]: %s", i, err.Error())
+			log.Errorf("读取设备响应数据出错[%d]: %s", i, err)
 			<-time.After(time.Millisecond * 100)
 			continue
 		} else {
-			return err.Error()
+			if nil == err {
+				return RepNop.Error()
+			} else {
+				return err.Error()
+			}
 		}
 	}
 	return RepNop.Error()
@@ -132,6 +136,7 @@ func tryReadReply(ctx edgex.Context, cli *sock.Client) string {
 func nodeFunc(nodeName string, controllerId byte, doorCount int) func() edgex.MainNode {
 	deviceOf := func(doorId int) edgex.VirtualNode {
 		return edgex.VirtualNode{
+			NodeId:     fmt.Sprintf("SWITCH:%d:%d", controllerId, doorId),
 			Major:      fmt.Sprintf("%d", controllerId),
 			Minor:      fmt.Sprintf("%d", doorId),
 			Desc:       fmt.Sprintf("%d号门-电磁开关", doorId),
