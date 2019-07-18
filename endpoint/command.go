@@ -7,7 +7,6 @@ import (
 	"github.com/parkingwang/go-wg26"
 	"github.com/yoojia/go-at"
 	"github.com/yoojia/go-bytes"
-	"log"
 	"strconv"
 )
 
@@ -44,7 +43,6 @@ func atCommands(registry *at.AtRegister, devAddr byte) {
 		w := bytes.NewWriter(binary.BigEndian)
 		// 5-10:卡号:6位
 		cardBytes := []byte(wg26id.CardSN)
-		log.Printf(">>>>>>> Card Hex: %X\n", cardBytes)
 		w.NextBytes(cardBytes)
 		// 11-18:截止日期: 全是F,不限制
 		w.NextBytes([]byte{'F', 'F', 'F', 'F'})
@@ -71,7 +69,6 @@ func atCommands(registry *at.AtRegister, devAddr byte) {
 		}
 		wg26id := wg26.ParseFromCardNumber(card)
 		cardBytes := []byte(wg26id.CardSN)
-		log.Printf(">>>>>>> Card Hex: %X\n", cardBytes)
 		return NewCommandCardDelete(devAddr, cardBytes).Bytes(), nil
 	})
 
