@@ -10,6 +10,7 @@ makeModule() {
         # Into a module dir
         cd ${dir}
         GOOS=linux GOARCH=arm make -f ../Makefile $*
+        GOOS=linux GOARCH=arm64 make -f ../Makefile $*
         GOOS=linux GOARCH=amd64 make -f ../Makefile $*
         GOOS=linux make -f ../Makefile manifest
         cd -
