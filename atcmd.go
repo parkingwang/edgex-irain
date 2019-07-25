@@ -1,9 +1,8 @@
-package main
+package irain
 
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/nextabc-lab/edgex-irain"
 	"github.com/parkingwang/go-wg26"
 	"github.com/yoojia/go-at"
 	"github.com/yoojia/go-bytes"
@@ -14,7 +13,7 @@ import (
 // Author: 陈哈哈 bitschen@163.com
 //
 
-func atCommands(registry *at.AtRegister, devAddr byte) {
+func AtCommands(registry *at.AtRegister, devAddr byte) {
 	// AT+OPEN=SWITCH_ID
 	registry.AddX("OPEN", 1, func(args ...string) ([]byte, error) {
 		switchId, err := parseInt(args[0])
@@ -56,7 +55,7 @@ func atCommands(registry *at.AtRegister, devAddr byte) {
 		w.NextBytes([]byte{'7', 'F'})
 		// 29、30:大门
 		w.NextBytes([]byte{'0', '1'})
-		return irain.NewIrCommand(devAddr, irain.CmdIdCardAdd, w.Bytes()).Bytes(), nil
+		return NewIrCommand(devAddr, CmdIdCardAdd, w.Bytes()).Bytes(), nil
 	}
 	registry.AddX("ADD", 1, addHandler)
 	registry.Add("ADD0", addHandler)
@@ -79,20 +78,20 @@ func atCommands(registry *at.AtRegister, devAddr byte) {
 }
 
 // 创建远程开门指令
-func newCommandRemoteOpen(devAddr, doorId byte) *irain.Command {
-	return irain.NewIrCommand(devAddr, irain.CmdIdRemoteOpen, []byte{doorId})
+func newCommandRemoteOpen(devAddr, doorId byte) *Command {
+	return NewIrCommand(devAddr, CmdIdRemoteOpen, []byte{doorId})
 }
 
 // 创建清除卡号指令
-func NewCommandCardClear(devAddr byte) *irain.Command {
-	return irain.NewIrCommand(devAddr, irain.CmdIdCardClear, []byte{
+func NewCommandCardClear(devAddr byte) *Command {
+	return NewIrCommand(devAddr, CmdIdCardClear, []byte{
 		0x0078, 0x0079, 0x007A,
 	})
 }
 
 // 创建删除卡号指令
-func NewCommandCardDelete(devAddr byte, card []byte) *irain.Command {
-	return irain.NewIrCommand(devAddr, irain.CmdIdCardDelete, card)
+func NewCommandCardDelete(devAddr byte, card []byte) *Command {
+	return NewIrCommand(devAddr, CmdIdCardDelete, card)
 }
 
 func parseInt(val string) (int64, error) {

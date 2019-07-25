@@ -1,13 +1,15 @@
 NodeName = "iRainTriggerDev"
+RpcAddress = "0.0.0.0:5570"
 Topic = "irain/events"
 
 # 主板配置参数
 [BoardOptions]
   controllerId = 1
+    doorCount = 1
 
 # Socket配置参数
 [SocketClientOptions]
-  remoteAddress = "192.168.1.107:5000"
+  remoteAddress = "192.168.1.19:5000"
   network = "tcp"
   readTimeout = "1s"
   writeTimeout = "1s"
