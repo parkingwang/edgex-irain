@@ -44,6 +44,8 @@ func endpoint(ctx edgex.Context) error {
 	atRegistry := at.NewAtRegister()
 	atCommands(atRegistry, byte(controllerId))
 
+	// Init
+	ctx.Initial(nodeName)
 	log := ctx.Log()
 
 	cli := sock.New(sock.Options{
