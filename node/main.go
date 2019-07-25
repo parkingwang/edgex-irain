@@ -40,9 +40,9 @@ func irainApp(ctx edgex.Context) error {
 		Addr:              remoteAddress,
 		ReadTimeout:       value.Of(clientOpts["readTimeout"]).DurationOfDefault(time.Second),
 		WriteTimeout:      value.Of(clientOpts["writeTimeout"]).DurationOfDefault(time.Second),
-		KeepAlive:         value.Of(clientOpts["keepAlive"]).BoolOrDefault(true),
-		KeepAliveInterval: value.Of(clientOpts["keepAliveInterval"]).DurationOfDefault(time.Second * 10),
-		ReconnectDelay:    value.Of(clientOpts["reconnectDelay"]).DurationOfDefault(time.Second),
+		KeepAlive:         true,
+		KeepAliveInterval: time.Second,
+		ReconnectDelay:    time.Second,
 	})
 	log.Debugf("客户端连接: [%s] %s", network, remoteAddress)
 	if err := cli.Connect(); nil != err {
@@ -82,8 +82,9 @@ func irainApp(ctx edgex.Context) error {
 	endpoint.Startup()
 	defer endpoint.Shutdown()
 
-	// 监听接收消息循环
 	shutdown := ctx.TermChan()
+
+	// 监听接收消息循环
 	go irain.ReceiveEventLoop(ctx, trigger, controllerId, cli, shutdown)
 
 	// 等待终止信号

@@ -49,8 +49,14 @@ func ReceiveEventLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byt
 
 		default:
 			err := cli.ReadWith(func(in io.Reader) error {
-				if ok, err := ReadMessage(in, message); ok {
+				ok, err := ReadMessage(in, message)
+				if ok {
 					process(message)
+					return nil
+				}
+				// 过滤格式问题
+				if err == ErrUnknownMessage {
+					log.Debug("接收到无效监控数据")
 					return nil
 				} else {
 					return err
@@ -60,6 +66,10 @@ func ReceiveEventLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byt
 				ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
 					log.Error("读取监控数据出错: " + err.Error())
 				})
+				log.Debug("正在重新连接")
+				if err := cli.Reconnect(); nil != err {
+					log.Error("重连失败: ", err)
+				}
 			}
 		}
 	}
