@@ -13,7 +13,7 @@ import (
 //
 
 var (
-	ErrUnknownMessage = errors.New("unknown ir-message bytes")
+	ErrUnknownMessage = errors.New("unknown irain message bytes")
 )
 
 const (
