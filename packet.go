@@ -110,7 +110,7 @@ func ReadMessage(in io.Reader, out *Message) (ok bool, err error) {
 	for {
 		b, err := reader.ReadByte()
 		if nil != err {
-			return false, ErrUnknownMessage
+			return false, err
 		}
 		if b == MessageStart {
 			break

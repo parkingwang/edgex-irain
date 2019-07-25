@@ -40,7 +40,7 @@ func trigger(ctx edgex.Context) error {
 	trigger := ctx.NewTrigger(edgex.TriggerOptions{
 		NodeName:        nodeName,
 		Topic:           eventTopic,
-		InspectNodeFunc: nodeFunc(nodeName, controllerId, int(doorCount)),
+		AutoInspectFunc: nodeFunc(controllerId, int(doorCount)),
 	})
 
 	cli := sock.New(sock.Options{
@@ -83,7 +83,7 @@ func trigger(ctx edgex.Context) error {
 		parseCardEvent(controllerId, msg.Payload, event)
 		// 发送事件
 		virtualNodeId := fmt.Sprintf(nodeIdFormat, event.ControllerId, event.DoorId, irain.DirectName(event.Direct))
-		if err := trigger.SendEventMessage(virtualNodeId, event.Bytes()); nil != err {
+		if err := trigger.PublishEvent(virtualNodeId, event.Bytes()); nil != err {
 			log.Error("触发事件出错: ", err)
 		} else {
 			log.Debugf("接收到刷卡数据, Device: %s, DoorId: %d, Card[WG26SN]: %s, Card[SN]: %s",
@@ -116,10 +116,10 @@ func trigger(ctx edgex.Context) error {
 	}
 }
 
-func nodeFunc(nodeName string, controllerId byte, doorCount int) func() edgex.MainNode {
-	deviceOf := func(doorId, direct int) edgex.VirtualNode {
+func nodeFunc(controllerId byte, doorCount int) func() edgex.MainNode {
+	deviceOf := func(doorId, direct int) *edgex.VirtualNode {
 		directName := irain.DirectName(byte(direct))
-		return edgex.VirtualNode{
+		return &edgex.VirtualNode{
 			NodeId:  fmt.Sprintf(nodeIdFormat, controllerId, doorId, directName),
 			Major:   fmt.Sprintf("%d:%d", controllerId, doorId),
 			Minor:   directName,
@@ -128,14 +128,13 @@ func nodeFunc(nodeName string, controllerId byte, doorCount int) func() edgex.Ma
 		}
 	}
 	return func() edgex.MainNode {
-		nodes := make([]edgex.VirtualNode, doorCount*2)
+		nodes := make([]*edgex.VirtualNode, doorCount*2)
 		for d := 0; d < doorCount; d++ {
 			nodes[d*2] = deviceOf(d+1, irain.DirectIn)
 			nodes[d*2+1] = deviceOf(d+1, irain.DirectOut)
 		}
 		return edgex.MainNode{
 			NodeType:     edgex.NodeTypeTrigger,
-			NodeName:     nodeName,
 			Vendor:       irain.VendorName,
 			ConnDriver:   irain.DriverName,
 			VirtualNodes: nodes,

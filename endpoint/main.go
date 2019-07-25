@@ -73,7 +73,7 @@ func endpoint(ctx edgex.Context) error {
 		NodeName:        nodeName,
 		RpcAddr:         rpcAddress,
 		SerialExecuting: true, // 艾润品牌主板不支持并发处理
-		InspectNodeFunc: nodeFunc(nodeName, controllerId, int(doorCount)),
+		AutoInspectFunc: nodeFunc(controllerId, int(doorCount)),
 	})
 
 	// 处理控制指令
@@ -133,9 +133,9 @@ func tryReadReply(ctx edgex.Context, cli *sock.Client) string {
 	return RepNop.Error()
 }
 
-func nodeFunc(nodeName string, controllerId byte, doorCount int) func() edgex.MainNode {
-	deviceOf := func(doorId int) edgex.VirtualNode {
-		return edgex.VirtualNode{
+func nodeFunc(controllerId byte, doorCount int) func() edgex.MainNode {
+	deviceOf := func(doorId int) *edgex.VirtualNode {
+		return &edgex.VirtualNode{
 			NodeId:     fmt.Sprintf("SWITCH:%d:%d", controllerId, doorId),
 			Major:      fmt.Sprintf("%d", controllerId),
 			Minor:      fmt.Sprintf("%d", doorId),
@@ -145,13 +145,12 @@ func nodeFunc(nodeName string, controllerId byte, doorCount int) func() edgex.Ma
 		}
 	}
 	return func() edgex.MainNode {
-		nodes := make([]edgex.VirtualNode, doorCount)
+		nodes := make([]*edgex.VirtualNode, doorCount)
 		for d := 0; d < doorCount; d++ {
 			nodes[d] = deviceOf(d + 1)
 		}
 		return edgex.MainNode{
 			NodeType:     edgex.NodeTypeEndpoint,
-			NodeName:     nodeName,
 			Vendor:       irain.VendorName,
 			ConnDriver:   irain.DriverName,
 			VirtualNodes: nodes,

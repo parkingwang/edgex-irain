@@ -3,7 +3,7 @@ module github.com/nextabc-lab/edgex-irain
 go 1.12
 
 require (
-	github.com/nextabc-lab/edgex-go v0.3.0
+	github.com/nextabc-lab/edgex-go v0.4.0-4
 	github.com/parkingwang/go-wg26 v0.1.3
 	github.com/yoojia/go-at v0.1.1
 	github.com/yoojia/go-bytes v0.0.2-1
