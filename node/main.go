@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/nextabc-lab/edgex-go"
 	"github.com/nextabc-lab/edgex-irain"
 	"github.com/yoojia/go-at"
@@ -18,18 +19,18 @@ func main() {
 }
 
 func irainApp(ctx edgex.Context) error {
-	config := ctx.LoadConfig()
-	nodeName := value.Of(config["NodeName"]).String()
+	fileName := flag.String("c", edgex.DefaultConfName, "config file name")
+	config := ctx.LoadConfigByName(*fileName)
+	// Init
+	log := ctx.Log()
+	ctx.InitialWithConfig(config)
+
 	eventTopic := value.Of(config["Topic"]).String()
 	rpcAddress := value.Of(config["RpcAddress"]).String()
 
 	boardOpts := value.Of(config["BoardOptions"]).MustMap()
 	controllerId := byte(value.Of(boardOpts["controllerId"]).MustInt64())
 	doorCount := value.Of(boardOpts["doorCount"]).Int64OrDefault(1)
-
-	// Init
-	log := ctx.Log()
-	ctx.Initial(nodeName)
 
 	// Socket客户商连接
 	clientOpts := value.Of(config["SocketClientOptions"]).MustMap()
@@ -62,14 +63,12 @@ func irainApp(ctx edgex.Context) error {
 
 	// Trigger服务，监听客户端数据
 	trigger := ctx.NewTrigger(edgex.TriggerOptions{
-		NodeName:        nodeName,
 		Topic:           eventTopic,
 		AutoInspectFunc: irain.FuncTriggerNode(controllerId, int(doorCount)),
 	})
 
 	// Endpoint服务
 	endpoint := ctx.NewEndpoint(edgex.EndpointOptions{
-		NodeName:        nodeName,
 		RpcAddr:         rpcAddress,
 		SerialExecuting: true, // 艾润品牌主板不支持并发处理
 		AutoInspectFunc: irain.FuncEndpointNode(controllerId, int(doorCount)),

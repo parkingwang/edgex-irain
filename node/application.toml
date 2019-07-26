@@ -1,11 +1,11 @@
 NodeName = "iRainTriggerDev"
-RpcAddress = "0.0.0.0:5570"
+RpcAddress = "0.0.0.0:5577"
 Topic = "irain/events"
 
 # 主板配置参数
 [BoardOptions]
   controllerId = 1
-    doorCount = 1
+  doorCount = 1
 
 # Socket配置参数
 [SocketClientOptions]
@@ -13,6 +13,3 @@ Topic = "irain/events"
   network = "tcp"
   readTimeout = "1s"
   writeTimeout = "1s"
-  reconnectDelay = "1s"
-  keepAlive = true
-  keepAliveInterval = "10s"
