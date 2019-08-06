@@ -1,5 +1,4 @@
-NodeName = "iRainTriggerDev"
-RpcAddress = "0.0.0.0:5577"
+NodeId = "iRainTriggerDev"
 Topic = "irain/events"
 
 # 主板配置参数

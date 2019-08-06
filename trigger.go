@@ -15,11 +15,11 @@ import (
 //
 
 const (
-	nodeIdFormat = "READER:%d:%d:%s"
+	virtualIdFormat = "READER-%d-%d-%s"
 )
 
 // 等待刷卡数据循环
-func ReceiveEventLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byte, cli *sock.Client, shutdown <-chan os.Signal) {
+func ReceiveLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byte, cli *sock.Client, shutdown <-chan os.Signal) error {
 	log := ctx.Log()
 	process := func(msg *Message) {
 		if FrameCardEventLength != len(msg.Payload) {
@@ -31,7 +31,7 @@ func ReceiveEventLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byt
 		event := new(CardEvent)
 		ParseCardEvent(controllerId, msg.Payload, event)
 		// 发送事件
-		virtualNodeId := fmt.Sprintf(nodeIdFormat, event.ControllerId, event.DoorId, DirectName(event.Direct))
+		virtualNodeId := fmt.Sprintf(virtualIdFormat, event.ControllerId, event.DoorId, DirectName(event.Direct))
 		if err := trigger.PublishEvent(virtualNodeId, event.Bytes()); nil != err {
 			log.Error("触发事件出错: ", err)
 		} else {
@@ -45,7 +45,8 @@ func ReceiveEventLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byt
 	for {
 		select {
 		case <-shutdown:
-			return
+			log.Debug("接收到系统终止信号")
+			return nil
 
 		default:
 			err := cli.ReadWith(func(in io.Reader) error {
@@ -76,24 +77,24 @@ func ReceiveEventLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byt
 }
 
 // 创建TriggerNode消息函数
-func FuncTriggerNode(controllerId byte, doorCount int) func() edgex.MainNode {
-	deviceOf := func(doorId, direct int) *edgex.VirtualNode {
+func FuncTriggerNode(controllerId byte, doorCount int) func() edgex.MainNodeInfo {
+	deviceOf := func(doorId, direct int) *edgex.VirtualNodeInfo {
 		directName := DirectName(byte(direct))
-		return &edgex.VirtualNode{
-			NodeId:  fmt.Sprintf(nodeIdFormat, controllerId, doorId, directName),
-			Major:   fmt.Sprintf("%d:%d", controllerId, doorId),
-			Minor:   directName,
-			Desc:    fmt.Sprintf("%d号门-%s-读卡器", doorId, directName),
-			Virtual: true,
+		return &edgex.VirtualNodeInfo{
+			VirtualId: fmt.Sprintf(virtualIdFormat, controllerId, doorId, directName),
+			MajorId:   fmt.Sprintf("%d-%d", controllerId, doorId),
+			MinorId:   directName,
+			Desc:      fmt.Sprintf("%d号门-%s-读卡器", doorId, directName),
+			Virtual:   true,
 		}
 	}
-	return func() edgex.MainNode {
-		nodes := make([]*edgex.VirtualNode, doorCount*2)
+	return func() edgex.MainNodeInfo {
+		nodes := make([]*edgex.VirtualNodeInfo, doorCount*2)
 		for d := 0; d < doorCount; d++ {
 			nodes[d*2] = deviceOf(d+1, DirectIn)
 			nodes[d*2+1] = deviceOf(d+1, DirectOut)
 		}
-		return edgex.MainNode{
+		return edgex.MainNodeInfo{
 			NodeType:     edgex.NodeTypeTrigger,
 			Vendor:       VendorName,
 			ConnDriver:   DriverName,

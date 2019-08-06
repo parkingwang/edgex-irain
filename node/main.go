@@ -26,7 +26,6 @@ func irainApp(ctx edgex.Context) error {
 	ctx.InitialWithConfig(config)
 
 	eventTopic := value.Of(config["Topic"]).String()
-	rpcAddress := value.Of(config["RpcAddress"]).String()
 
 	boardOpts := value.Of(config["BoardOptions"]).MustMap()
 	controllerId := byte(value.Of(boardOpts["controllerId"]).MustInt64())
@@ -39,8 +38,8 @@ func irainApp(ctx edgex.Context) error {
 	cli := sock.New(sock.Options{
 		Network:           network,
 		Addr:              remoteAddress,
-		ReadTimeout:       value.Of(clientOpts["readTimeout"]).DurationOfDefault(time.Second),
-		WriteTimeout:      value.Of(clientOpts["writeTimeout"]).DurationOfDefault(time.Second),
+		ReadTimeout:       time.Second,
+		WriteTimeout:      time.Second,
 		KeepAlive:         true,
 		KeepAliveInterval: time.Second,
 		ReconnectDelay:    time.Second,
@@ -69,25 +68,18 @@ func irainApp(ctx edgex.Context) error {
 
 	// Endpoint服务
 	endpoint := ctx.NewEndpoint(edgex.EndpointOptions{
-		RpcAddr:         rpcAddress,
-		SerialExecuting: true, // 艾润品牌主板不支持并发处理
 		AutoInspectFunc: irain.FuncEndpointNode(controllerId, int(doorCount)),
 	})
-	endpoint.Serve(irain.FuncRpcServe(ctx, endpoint, atRegistry, cli))
+	endpoint.Serve(irain.FuncRpcServe(ctx, atRegistry, cli))
 
 	// 启动服务
 	trigger.Startup()
 	defer trigger.Shutdown()
+
 	endpoint.Startup()
 	defer endpoint.Shutdown()
 
-	shutdown := ctx.TermChan()
-
 	// 监听接收消息循环
-	go irain.ReceiveEventLoop(ctx, trigger, controllerId, cli, shutdown)
-
-	// 等待终止信号
-	<-shutdown
-	return nil
+	return irain.ReceiveLoop(ctx, trigger, controllerId, cli, ctx.TermChan())
 
 }

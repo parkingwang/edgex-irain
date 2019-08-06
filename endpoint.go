@@ -23,16 +23,15 @@ var (
 )
 
 // 创建RPC服务函数
-func FuncRpcServe(ctx edgex.Context, endpoint edgex.Endpoint, atRegistry *at.AtRegister, cli *sock.Client) func(msg edgex.Message) (out edgex.Message) {
+func FuncRpcServe(ctx edgex.Context, atRegistry *at.AtRegister, cli *sock.Client) func(msg edgex.Message) (out []byte) {
 	log := ctx.Log()
-	nodeName := endpoint.NodeName()
-	return func(msg edgex.Message) (out edgex.Message) {
+	return func(msg edgex.Message) (out []byte) {
 		atCmd := string(msg.Body())
 		log.Debug("接收到控制指令: " + atCmd)
 		cmd, err := atRegistry.Apply(atCmd)
 		if nil != err {
 			log.Error("控制指令格式错误: " + err.Error())
-			return endpoint.NextMessage(nodeName, []byte("EX=ERR:BAD_CMD:"+err.Error()))
+			return []byte("EX=ERR:BAD_CMD:" + err.Error())
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
 			log.Debug("艾润控制指令码: " + hex.EncodeToString(cmd))
@@ -40,31 +39,31 @@ func FuncRpcServe(ctx edgex.Context, endpoint edgex.Endpoint, atRegistry *at.AtR
 		// Write
 		if _, err := cli.Write(cmd); nil != err {
 			log.Error("发送/写入控制指令出错", err)
-			return endpoint.NextMessage(nodeName, []byte("EX=ERR:WRITE:"+err.Error()))
+			return []byte("EX=ERR:WRITE:" + err.Error())
 		}
 		reply := tryReadReply(ctx, cli)
-		return endpoint.NextMessage(nodeName, []byte(reply))
+		return []byte(reply)
 	}
 }
 
 // 创建EndpointNode函数
-func FuncEndpointNode(controllerId byte, doorCount int) func() edgex.MainNode {
-	deviceOf := func(doorId int) *edgex.VirtualNode {
-		return &edgex.VirtualNode{
-			NodeId:     fmt.Sprintf("SWITCH:%d:%d", controllerId, doorId),
-			Major:      fmt.Sprintf("%d", controllerId),
-			Minor:      fmt.Sprintf("%d", doorId),
-			Desc:       fmt.Sprintf("%d号门-电磁开关", doorId),
-			Virtual:    true,
-			RpcCommand: fmt.Sprintf("AT+OPEN=%d", doorId),
+func FuncEndpointNode(controllerId byte, doorCount int) func() edgex.MainNodeInfo {
+	deviceOf := func(doorId int) *edgex.VirtualNodeInfo {
+		return &edgex.VirtualNodeInfo{
+			VirtualId: fmt.Sprintf("SWITCH-%d-%d", controllerId, doorId),
+			MajorId:   fmt.Sprintf("%d", controllerId),
+			MinorId:   fmt.Sprintf("%d", doorId),
+			Desc:      fmt.Sprintf("%d号门-电磁开关", doorId),
+			Virtual:   true,
+			Commands:  fmt.Sprintf("AT+OPEN=%d", doorId),
 		}
 	}
-	return func() edgex.MainNode {
-		nodes := make([]*edgex.VirtualNode, doorCount)
+	return func() edgex.MainNodeInfo {
+		nodes := make([]*edgex.VirtualNodeInfo, doorCount)
 		for d := 0; d < doorCount; d++ {
 			nodes[d] = deviceOf(d + 1)
 		}
-		return edgex.MainNode{
+		return edgex.MainNodeInfo{
 			NodeType:     edgex.NodeTypeEndpoint,
 			Vendor:       VendorName,
 			ConnDriver:   DriverName,
