@@ -47,23 +47,25 @@ func FuncRpcServe(ctx edgex.Context, atRegistry *at.AtRegister, cli *sock.Client
 }
 
 // 创建EndpointNode函数
-func FuncEndpointNode(controllerId byte, doorCount int) func() edgex.MainNodeInfo {
-	deviceOf := func(doorId int) *edgex.VirtualNodeInfo {
-		return &edgex.VirtualNodeInfo{
-			VirtualId: fmt.Sprintf("SWITCH-%d-%d", controllerId, doorId),
-			MajorId:   fmt.Sprintf("%d", controllerId),
-			MinorId:   fmt.Sprintf("%d", doorId),
-			Desc:      fmt.Sprintf("%d号门-电磁开关", doorId),
-			Virtual:   true,
-			Commands:  fmt.Sprintf("AT+OPEN=%d", doorId),
+func FuncEndpointNode(controllerId byte, doorCount int) func() edgex.MainNodeProperties {
+	deviceOf := func(doorId int) *edgex.VirtualNodeProperties {
+		return &edgex.VirtualNodeProperties{
+			VirtualId:   fmt.Sprintf("SWITCH-%d-%d", controllerId, doorId),
+			MajorId:     fmt.Sprintf("%d", controllerId),
+			MinorId:     fmt.Sprintf("%d", doorId),
+			Description: fmt.Sprintf("%d号门-电磁开关", doorId),
+			Virtual:     true,
+			StateCommands: map[string]string{
+				"TRIGGER": fmt.Sprintf("AT+OPEN=%d", doorId),
+			},
 		}
 	}
-	return func() edgex.MainNodeInfo {
-		nodes := make([]*edgex.VirtualNodeInfo, doorCount)
+	return func() edgex.MainNodeProperties {
+		nodes := make([]*edgex.VirtualNodeProperties, doorCount)
 		for d := 0; d < doorCount; d++ {
 			nodes[d] = deviceOf(d + 1)
 		}
-		return edgex.MainNodeInfo{
+		return edgex.MainNodeProperties{
 			NodeType:     edgex.NodeTypeEndpoint,
 			Vendor:       VendorName,
 			ConnDriver:   DriverName,

@@ -77,24 +77,24 @@ func ReceiveLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byte, cl
 }
 
 // 创建TriggerNode消息函数
-func FuncTriggerNode(controllerId byte, doorCount int) func() edgex.MainNodeInfo {
-	deviceOf := func(doorId, direct int) *edgex.VirtualNodeInfo {
+func FuncTriggerNode(controllerId byte, doorCount int) func() edgex.MainNodeProperties {
+	deviceOf := func(doorId, direct int) *edgex.VirtualNodeProperties {
 		directName := DirectName(byte(direct))
-		return &edgex.VirtualNodeInfo{
-			VirtualId: fmt.Sprintf(virtualIdFormat, controllerId, doorId, directName),
-			MajorId:   fmt.Sprintf("%d-%d", controllerId, doorId),
-			MinorId:   directName,
-			Desc:      fmt.Sprintf("%d号门-%s-读卡器", doorId, directName),
-			Virtual:   true,
+		return &edgex.VirtualNodeProperties{
+			VirtualId:   fmt.Sprintf(virtualIdFormat, controllerId, doorId, directName),
+			MajorId:     fmt.Sprintf("%d-%d", controllerId, doorId),
+			MinorId:     directName,
+			Description: fmt.Sprintf("%d号门-%s-读卡器", doorId, directName),
+			Virtual:     true,
 		}
 	}
-	return func() edgex.MainNodeInfo {
-		nodes := make([]*edgex.VirtualNodeInfo, doorCount*2)
+	return func() edgex.MainNodeProperties {
+		nodes := make([]*edgex.VirtualNodeProperties, doorCount*2)
 		for d := 0; d < doorCount; d++ {
 			nodes[d*2] = deviceOf(d+1, DirectIn)
 			nodes[d*2+1] = deviceOf(d+1, DirectOut)
 		}
-		return edgex.MainNodeInfo{
+		return edgex.MainNodeProperties{
 			NodeType:     edgex.NodeTypeTrigger,
 			Vendor:       VendorName,
 			ConnDriver:   DriverName,
