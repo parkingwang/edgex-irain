@@ -62,13 +62,13 @@ func irainApp(ctx edgex.Context) error {
 
 	// Trigger服务，监听客户端数据
 	trigger := ctx.NewTrigger(edgex.TriggerOptions{
-		Topic:           eventTopic,
-		AutoInspectFunc: irain.FuncTriggerNode(controllerId, int(doorCount)),
+		Topic:              eventTopic,
+		NodePropertiesFunc: irain.FuncTriggerProperties(controllerId, int(doorCount)),
 	})
 
 	// Endpoint服务
 	endpoint := ctx.NewEndpoint(edgex.EndpointOptions{
-		AutoInspectFunc: irain.FuncEndpointNode(controllerId, int(doorCount)),
+		NodePropertiesFunc: irain.FuncEndpointProperties(controllerId, int(doorCount)),
 	})
 	endpoint.Serve(irain.FuncRpcServe(ctx, atRegistry, cli))
 

@@ -47,7 +47,7 @@ func FuncRpcServe(ctx edgex.Context, atRegistry *at.AtRegister, cli *sock.Client
 }
 
 // 创建EndpointNode函数
-func FuncEndpointNode(controllerId byte, doorCount int) func() edgex.MainNodeProperties {
+func FuncEndpointProperties(controllerId byte, doorCount int) func() edgex.MainNodeProperties {
 	deviceOf := func(doorId int) *edgex.VirtualNodeProperties {
 		return &edgex.VirtualNodeProperties{
 			VirtualId:   fmt.Sprintf("SWITCH-%d-%d", controllerId, doorId),

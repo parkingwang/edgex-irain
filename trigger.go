@@ -77,7 +77,7 @@ func ReceiveLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byte, cl
 }
 
 // 创建TriggerNode消息函数
-func FuncTriggerNode(controllerId byte, doorCount int) func() edgex.MainNodeProperties {
+func FuncTriggerProperties(controllerId byte, doorCount int) func() edgex.MainNodeProperties {
 	deviceOf := func(doorId, direct int) *edgex.VirtualNodeProperties {
 		directName := DirectName(byte(direct))
 		return &edgex.VirtualNodeProperties{

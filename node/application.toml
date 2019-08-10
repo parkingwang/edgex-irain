@@ -1,6 +1,9 @@
 NodeId = "iRainTriggerDev"
 Topic = "irain/events"
 
+[Globals]
+  logVerbose = true
+
 # 主板配置参数
 [BoardOptions]
   controllerId = 1
