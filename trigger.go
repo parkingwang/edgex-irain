@@ -32,7 +32,7 @@ func ReceiveLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byte, cl
 		ParseCardEvent(controllerId, msg.Payload, event)
 		// 发送事件
 		virtualNodeId := fmt.Sprintf(virtualIdFormat, event.ControllerId, event.DoorId, DirectName(event.Direct))
-		if err := trigger.PublishEvent(virtualNodeId, event.Bytes()); nil != err {
+		if err := trigger.PublishEvent(virtualNodeId, event.Bytes(), trigger.GenerateEventId()); nil != err {
 			log.Error("触发事件出错: ", err)
 		} else {
 			log.Debugf("接收到刷卡数据, Device: %s, DoorId: %d, Card[WG26SN]: %s, Card[SN]: %s",
