@@ -50,10 +50,10 @@ func FuncRpcServe(ctx edgex.Context, atRegistry *at.AtRegister, cli *sock.Client
 func FuncEndpointProperties(controllerId byte, doorCount int) func() edgex.MainNodeProperties {
 	deviceOf := func(doorId int) *edgex.VirtualNodeProperties {
 		return &edgex.VirtualNodeProperties{
-			VirtualId:   fmt.Sprintf("SWITCH-%d-%d", controllerId, doorId),
-			MajorId:     fmt.Sprintf("%d", controllerId),
-			MinorId:     fmt.Sprintf("%d", doorId),
-			Description: fmt.Sprintf("%d号门-电磁开关", doorId),
+			GroupId:     makeGroupId(controllerId),
+			MajorId:     makeDoorId(doorId),
+			MinorId:     "SW",
+			Description: fmt.Sprintf("控制器#%d-%d号门-开关", controllerId, doorId),
 			Virtual:     true,
 			StateCommands: map[string]string{
 				"TRIGGER": fmt.Sprintf("AT+OPEN=%d", doorId),

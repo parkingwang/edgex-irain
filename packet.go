@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"github.com/yoojia/go-bytes"
 	"io"
 )
@@ -140,4 +141,12 @@ func DirectName(dir byte) string {
 	} else {
 		return "OUT"
 	}
+}
+
+func makeGroupId(ctrlId byte) string {
+	return fmt.Sprintf("ADDR#%d", ctrlId)
+}
+
+func makeDoorId(doorId int) string {
+	return fmt.Sprintf("DOOR#%d", doorId)
 }

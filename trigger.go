@@ -14,10 +14,6 @@ import (
 // Author: 陈哈哈 yoojiachen@gmail.com
 //
 
-const (
-	virtualIdFormat = "READER-%d-%d-%s"
-)
-
 // 等待刷卡数据循环
 func ReceiveLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byte, cli *sock.Client, shutdown <-chan os.Signal) error {
 	log := ctx.Log()
@@ -31,12 +27,19 @@ func ReceiveLoop(ctx edgex.Context, trigger edgex.Trigger, controllerId byte, cl
 		event := new(CardEvent)
 		ParseCardEvent(controllerId, msg.Payload, event)
 		// 发送事件
-		virtualNodeId := fmt.Sprintf(virtualIdFormat, event.ControllerId, event.DoorId, DirectName(event.Direct))
-		if err := trigger.PublishEvent(virtualNodeId, event.Bytes(), trigger.GenerateEventId()); nil != err {
+		ctrlId := makeGroupId(event.ControllerId)
+		doorId := makeDoorId(int(event.DoorId))
+		directName := DirectName(event.Direct)
+		if err := trigger.PublishEvent(
+			ctrlId,
+			doorId,
+			directName,
+			event.Bytes(),
+			trigger.GenerateEventId()); nil != err {
 			log.Error("触发事件出错: ", err)
 		} else {
-			log.Debugf("接收到刷卡数据, Device: %s, DoorId: %d, Card[WG26SN]: %s, Card[SN]: %s",
-				virtualNodeId, event.DoorId, event.Card.Wg26SN, event.Card.CardSN)
+			log.Debugf("接收到刷卡数据, CtrlId: %s, DoorId: %s, Card[WG26SN]: %s, Card[SN]: %s",
+				ctrlId, doorId, event.Card.Wg26SN, event.Card.CardSN)
 		}
 	}
 
@@ -81,10 +84,10 @@ func FuncTriggerProperties(controllerId byte, doorCount int) func() edgex.MainNo
 	deviceOf := func(doorId, direct int) *edgex.VirtualNodeProperties {
 		directName := DirectName(byte(direct))
 		return &edgex.VirtualNodeProperties{
-			VirtualId:   fmt.Sprintf(virtualIdFormat, controllerId, doorId, directName),
-			MajorId:     fmt.Sprintf("%d-%d", controllerId, doorId),
+			GroupId:     makeGroupId(controllerId),
+			MajorId:     makeDoorId(doorId),
 			MinorId:     directName,
-			Description: fmt.Sprintf("%d号门-%s-读卡器", doorId, directName),
+			Description: fmt.Sprintf("控制器#%d-%d号门-%s-读卡器", controllerId, doorId, directName),
 			Virtual:     true,
 		}
 	}
