@@ -144,9 +144,9 @@ func DirectName(dir byte) string {
 }
 
 func makeGroupId(ctrlId byte) string {
-	return fmt.Sprintf("ADDR#%d", ctrlId)
+	return fmt.Sprintf("SNID[%d]", ctrlId)
 }
 
 func makeDoorId(doorId int) string {
-	return fmt.Sprintf("DOOR#%d", doorId)
+	return fmt.Sprintf("DOOR[%d]", doorId)
 }
