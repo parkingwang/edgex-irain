@@ -28,7 +28,7 @@ func irainApp(ctx edgex.Context) error {
 	eventTopic := value.Of(config["Topic"]).String()
 
 	boardOpts := value.Of(config["BoardOptions"]).MustMap()
-	controllerId := byte(value.Of(boardOpts["controllerId"]).MustInt64())
+	boardAddr := byte(value.Of(boardOpts["controllerId"]).MustInt64())
 	doorCount := value.Of(boardOpts["doorCount"]).Int64OrDefault(1)
 
 	// Socket客户商连接
@@ -58,17 +58,17 @@ func irainApp(ctx edgex.Context) error {
 
 	// AT指令解析
 	atRegistry := at.NewAtRegister()
-	irain.AtCommands(atRegistry, byte(controllerId))
+	irain.AtCommands(atRegistry, boardAddr)
 
 	// Trigger服务，监听客户端数据
 	trigger := ctx.NewTrigger(edgex.TriggerOptions{
 		Topic:              eventTopic,
-		NodePropertiesFunc: irain.FuncTriggerProperties(controllerId, int(doorCount)),
+		NodePropertiesFunc: irain.FuncTriggerProperties(boardAddr, int(doorCount)),
 	})
 
 	// Endpoint服务
 	endpoint := ctx.NewEndpoint(edgex.EndpointOptions{
-		NodePropertiesFunc: irain.FuncEndpointProperties(controllerId, int(doorCount)),
+		NodePropertiesFunc: irain.FuncEndpointProperties(boardAddr, int(doorCount)),
 	})
 	endpoint.Serve(irain.FuncRpcServe(ctx, atRegistry, cli))
 
@@ -80,6 +80,6 @@ func irainApp(ctx edgex.Context) error {
 	defer endpoint.Shutdown()
 
 	// 监听接收消息循环
-	return irain.ReceiveLoop(ctx, trigger, controllerId, cli, ctx.TermChan())
+	return irain.ReceiveLoop(ctx, trigger, boardAddr, cli, ctx.TermChan())
 
 }

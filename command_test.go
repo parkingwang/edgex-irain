@@ -11,7 +11,7 @@ import (
 
 func TestReadMessage(t *testing.T) {
 	r := bytes.NewReader([]byte{0xE2, 0x56, 0x43, 0x3b, 0xff, 0xff, 0x01, 0x65, 0x62, 0x01, 0x12, 0xE3})
-	msg := new(Message)
+	msg := new(IrMessage)
 	ok, err := ReadMessage(r, msg)
 	if !ok {
 		t.Error("Not ok")
@@ -26,7 +26,7 @@ func TestReadMessage(t *testing.T) {
 
 func TestReadMessageSuccess(t *testing.T) {
 	r := bytes.NewReader([]byte{0xE2, 'Y', 0xE3})
-	msg := new(Message)
+	msg := new(IrMessage)
 	ok, err := ReadMessage(r, msg)
 	if !ok {
 		t.Error("Not ok")
@@ -41,7 +41,7 @@ func TestReadMessageSuccess(t *testing.T) {
 
 func TestReadMessageError(t *testing.T) {
 	r := bytes.NewReader([]byte{0xE2, 0xE3})
-	msg := new(Message)
+	msg := new(IrMessage)
 	ok, err := ReadMessage(r, msg)
 	if ok {
 		t.Error("Should not ok")

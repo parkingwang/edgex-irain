@@ -47,13 +47,13 @@ func FuncRpcServe(ctx edgex.Context, atRegistry *at.AtRegister, cli *sock.Client
 }
 
 // 创建EndpointNode函数
-func FuncEndpointProperties(controllerId byte, doorCount int) func() edgex.MainNodeProperties {
+func FuncEndpointProperties(boardAddr byte, doorCount int) func() edgex.MainNodeProperties {
 	deviceOf := func(doorId int) *edgex.VirtualNodeProperties {
 		return &edgex.VirtualNodeProperties{
-			GroupId:     makeGroupId(controllerId),
-			MajorId:     makeDoorId(doorId),
+			GroupId:     makeGroupId(boardAddr),
+			MajorId:     makeMajorId(doorId),
 			MinorId:     "SW",
-			Description: fmt.Sprintf("控制器#%d-%d号门-开关", controllerId, doorId),
+			Description: fmt.Sprintf("控制器#%d-%d号门-开关", boardAddr, doorId),
 			Virtual:     true,
 			StateCommands: map[string]string{
 				"TRIGGER": fmt.Sprintf("AT+OPEN=%d", doorId),
@@ -78,7 +78,7 @@ func FuncEndpointProperties(controllerId byte, doorCount int) func() edgex.MainN
 // 只读取应答指令，忽略其它指令。最多读取5次，间隔100毫秒
 func tryReadReply(ctx edgex.Context, cli *sock.Client) string {
 	log := ctx.Log()
-	msg := new(Message)
+	msg := new(IrMessage)
 	for i := 0; i < 5; i++ {
 		err := cli.ReadWith(func(in io.Reader) error {
 			if ok, e := ReadMessage(in, msg); !ok {

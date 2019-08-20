@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"github.com/yoojia/go-bytes"
 	"io"
 )
@@ -93,19 +92,19 @@ func NewIrCommand(devAddr, cmdId byte, payload []byte) *Command {
 ////
 
 // 响应数据结构
-type Message struct {
+type IrMessage struct {
 	start   byte // 起始位
 	Payload []byte
 	end     byte
 }
 
-func (r *Message) IsSuccess() bool {
+func (r *IrMessage) IsSuccess() bool {
 	return 'Y' == r.Payload[0]
 }
 
-// ReadMessage 从Reader读取响应数据字节，通过填充 Message 结构返回结果。
+// ReadMessage 从Reader读取响应数据字节，通过填充 IrMessage 结构返回结果。
 // 如果读取Reply结构成功，返回True标记位；失败，则返回False，并返回 ErrUnknownMessage 错误。
-func ReadMessage(in io.Reader, out *Message) (ok bool, err error) {
+func ReadMessage(in io.Reader, out *IrMessage) (ok bool, err error) {
 	reader := bufio.NewReader(in)
 	// Wait start byte
 	for {
@@ -131,22 +130,4 @@ func ReadMessage(in io.Reader, out *Message) (ok bool, err error) {
 	out.Payload = data[:size-1]
 	out.end = MessageEnd
 	return true, nil
-}
-
-////
-
-func DirectName(dir byte) string {
-	if 1 == dir {
-		return "IN"
-	} else {
-		return "OUT"
-	}
-}
-
-func makeGroupId(ctrlId byte) string {
-	return fmt.Sprintf("SNID[%d]", ctrlId)
-}
-
-func makeDoorId(doorId int) string {
-	return fmt.Sprintf("DOOR[%d]", doorId)
 }
