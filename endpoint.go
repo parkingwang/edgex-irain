@@ -23,21 +23,21 @@ var (
 )
 
 // 创建RPC服务函数
-func FuncRpcServe(ctx edgex.Context, atRegistry *at.AtRegister, cli *sock.Client) func(msg edgex.Message) (out []byte) {
+func FuncRpcServe(ctx edgex.Context, atRegistry *at.Registry, cli *sock.Client) func(edgex.Message) []byte {
 	log := ctx.Log()
 	return func(msg edgex.Message) (out []byte) {
 		atCmd := string(msg.Body())
 		log.Debug("接收到控制指令: " + atCmd)
-		cmd, err := atRegistry.Apply(atCmd)
+		irCmd, err := atRegistry.Transformer(atCmd)
 		if nil != err {
 			log.Error("控制指令格式错误: " + err.Error())
 			return []byte("EX=ERR:BAD_CMD:" + err.Error())
 		}
 		ctx.LogIfVerbose(func(log *zap.SugaredLogger) {
-			log.Debug("艾润控制指令码: " + hex.EncodeToString(cmd))
+			log.Debug("艾润控制指令码: " + hex.EncodeToString(irCmd.Payload))
 		})
 		// Write
-		if _, err := cli.Write(cmd); nil != err {
+		if _, err := cli.Write(irCmd.Payload); nil != err {
 			log.Error("发送/写入控制指令出错", err)
 			return []byte("EX=ERR:WRITE:" + err.Error())
 		}
@@ -50,10 +50,11 @@ func FuncRpcServe(ctx edgex.Context, atRegistry *at.AtRegister, cli *sock.Client
 func FuncEndpointProperties(boardAddr byte, doorCount int) func() edgex.MainNodeProperties {
 	deviceOf := func(doorId int) *edgex.VirtualNodeProperties {
 		return &edgex.VirtualNodeProperties{
-			GroupId:     makeGroupId(boardAddr),
+			BoardId:     makeBoardId(boardAddr),
 			MajorId:     makeMajorId(doorId),
 			MinorId:     "SW",
-			Description: fmt.Sprintf("控制器#%d-%d号门-开关", boardAddr, doorId),
+			DeviceType:  "switch",
+			Description: fmt.Sprintf("艾润#%d/%d号门/开关", boardAddr, doorId),
 			Virtual:     true,
 			StateCommands: map[string]string{
 				"TRIGGER": fmt.Sprintf("AT+OPEN=%d", doorId),

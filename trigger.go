@@ -42,7 +42,7 @@ func ReceiveLoop(ctx edgex.Context, trigger edgex.Trigger, boardAddr byte, cli *
 		}
 
 		if err := trigger.PublishEvent(
-			makeGroupId(byte(event.BoardId)),
+			makeBoardId(byte(event.BoardId)),
 			makeMajorId(int(event.DoorId)),
 			directName(event.Direct),
 			data,
@@ -113,10 +113,11 @@ func parseCardEvent(data []byte, boardAddr byte) extra.CardEvent {
 func FuncTriggerProperties(boardAddr byte, doorCount int) func() edgex.MainNodeProperties {
 	deviceOf := func(doorId int, directName string) *edgex.VirtualNodeProperties {
 		return &edgex.VirtualNodeProperties{
-			GroupId:     makeGroupId(boardAddr),
+			BoardId:     makeBoardId(boardAddr),
 			MajorId:     makeMajorId(doorId),
 			MinorId:     directName,
-			Description: fmt.Sprintf("控制器#%d-%d号门-%s-读卡器", boardAddr, doorId, directName),
+			DeviceType:  "reader",
+			Description: fmt.Sprintf("艾润#%d/%d号门/%s/Reader", boardAddr, doorId, directName),
 			Virtual:     true,
 		}
 	}

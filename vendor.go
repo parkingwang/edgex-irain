@@ -24,7 +24,7 @@ func directName(dir byte) string {
 	}
 }
 
-func makeGroupId(ctrlId byte) string {
+func makeBoardId(ctrlId byte) string {
 	return fmt.Sprintf("SNID[%d]", ctrlId)
 }
 

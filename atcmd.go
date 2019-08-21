@@ -6,17 +6,16 @@ import (
 	"github.com/parkingwang/go-wg26"
 	"github.com/yoojia/go-at"
 	"github.com/yoojia/go-bytes"
-	"strconv"
 )
 
 //
 // Author: 陈哈哈 bitschen@163.com
 //
 
-func AtCommands(registry *at.AtRegister, devAddr byte) {
+func AtCommands(registry *at.Registry, devAddr byte) {
 	// AT+OPEN=SWITCH_ID
-	registry.AddX("OPEN", 1, func(args ...string) ([]byte, error) {
-		switchId, err := parseInt(args[0])
+	registry.AddX("OPEN", 1, func(args at.Args) ([]byte, error) {
+		switchId, err := args.ArgInt64(0)
 		if nil != err {
 			return nil, errors.New("INVALID_SWITCH_ID:" + args[0])
 		}
@@ -33,7 +32,7 @@ func AtCommands(registry *at.AtRegister, devAddr byte) {
 		27、28:星期有效否
 		29、30: 大门有效否
 	*/
-	addHandler := func(args ...string) ([]byte, error) {
+	addHandler := func(args at.Args) ([]byte, error) {
 		card := args[0]
 		if !wg26.IsCardSN(card) {
 			return nil, errors.New("INVALID_CARD_SN[10digits]")
@@ -61,7 +60,7 @@ func AtCommands(registry *at.AtRegister, devAddr byte) {
 	registry.Add("ADD0", addHandler)
 
 	// AT+DELETE=CARD(SN)
-	registry.AddX("DELETE", 1, func(args ...string) ([]byte, error) {
+	registry.AddX("DELETE", 1, func(args at.Args) ([]byte, error) {
 		card := args[0]
 		if !wg26.IsCardSN(card) {
 			return nil, errors.New("INVALID_CARD_SN[10digits]")
@@ -72,7 +71,7 @@ func AtCommands(registry *at.AtRegister, devAddr byte) {
 	})
 
 	// AT+CLEAR
-	registry.AddX("CLEAR", 0, func(args ...string) ([]byte, error) {
+	registry.AddX("CLEAR", 0, func(args at.Args) ([]byte, error) {
 		return NewCommandCardClear(devAddr).Bytes(), nil
 	})
 }
@@ -92,8 +91,4 @@ func NewCommandCardClear(devAddr byte) *Command {
 // 创建删除卡号指令
 func NewCommandCardDelete(devAddr byte, card []byte) *Command {
 	return NewIrCommand(devAddr, CmdIdCardDelete, card)
-}
-
-func parseInt(val string) (int64, error) {
-	return strconv.ParseInt(val, 10, 64)
 }

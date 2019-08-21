@@ -57,8 +57,8 @@ func irainApp(ctx edgex.Context) error {
 	}()
 
 	// AT指令解析
-	atRegistry := at.NewAtRegister()
-	irain.AtCommands(atRegistry, boardAddr)
+	registry := at.NewRegistry()
+	irain.AtCommands(registry, boardAddr)
 
 	// Trigger服务，监听客户端数据
 	trigger := ctx.NewTrigger(edgex.TriggerOptions{
@@ -70,7 +70,7 @@ func irainApp(ctx edgex.Context) error {
 	endpoint := ctx.NewEndpoint(edgex.EndpointOptions{
 		NodePropertiesFunc: irain.FuncEndpointProperties(boardAddr, int(doorCount)),
 	})
-	endpoint.Serve(irain.FuncRpcServe(ctx, atRegistry, cli))
+	endpoint.Serve(irain.FuncRpcServe(ctx, registry, cli))
 
 	// 启动服务
 	trigger.Startup()

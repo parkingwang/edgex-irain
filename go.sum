@@ -6,8 +6,8 @@ github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/eclipse/paho.mqtt.golang v1.2.0 h1:1F8mhG9+aO5/xpdtFkW4SxOJB67ukuDC3t2y2qayIX0=
 github.com/eclipse/paho.mqtt.golang v1.2.0/go.mod h1:H9keYFcgq3Qr5OUJm/JZI/i6U7joQ8SYLhZwfeOo6Ts=
-github.com/nextabc-lab/edgex-go v0.9.5 h1:t2L96n6fVfQQaTMXUUiGiMS2Hqt1Q8NoGxmvpXO8TUw=
-github.com/nextabc-lab/edgex-go v0.9.5/go.mod h1:6LWpz+maSBddK3+uUnJtbd9JepMM0uhbhaS0Lz6ibxg=
+github.com/nextabc-lab/edgex-go v0.11.1 h1:+8esEjeoj8KZHIW/B6jeMw2bN2lmpuPbFYvaiXLuFMc=
+github.com/nextabc-lab/edgex-go v0.11.1/go.mod h1:6LWpz+maSBddK3+uUnJtbd9JepMM0uhbhaS0Lz6ibxg=
 github.com/parkingwang/go-wg26 v0.1.3 h1:QjUBehhvpRrN+0ZC2mnwe5wEkzaA6fJauNz/TFC++BI=
 github.com/parkingwang/go-wg26 v0.1.3/go.mod h1:uqfHBsNSQfbMOqMYAnmMgVrcNUI2B6e1povPZd+AiQw=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
@@ -17,8 +17,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
-github.com/yoojia/go-at v0.1.1 h1:bP1XHlBtopGiy7SiRxTFwAmso6WDp2v+IqDksDRIlJg=
-github.com/yoojia/go-at v0.1.1/go.mod h1:xCXmScyGWWG3pmPcDbSqDGwAME3XjenxjBQIa5JeoR0=
+github.com/yoojia/go-at v0.2.1 h1:k2dbo1bkUCp4va8qKBYJdKIDwNtT8lZN2jcONw8lX1E=
+github.com/yoojia/go-at v0.2.1/go.mod h1:OcePEumAmykQ+OuNRp2SVaQVAC69iPNbg8AwhPGCHGs=
 github.com/yoojia/go-bytes v0.0.2-1 h1:B/O4v5mwLz8mqO4WP30rC8y7cgPAtkb8K7sHsnQ06c8=
 github.com/yoojia/go-bytes v0.0.2-1/go.mod h1:eMZ3hmJzpwxOmwB/t7gpJr4Y99FG/Qq33pwpt47TpcQ=
 github.com/yoojia/go-socket v0.0.2 h1:z+O5QNGNSryTN2G/NlG29I9XWYhvcPaZRr64VaOwCCg=
